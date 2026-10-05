@@ -1,12 +1,12 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { rawSql, closeDatabase } from "../config/database.js";
 try {
-  await rawSql(
-    await readFile(
-      new URL("../migrations/001_initial.sql", import.meta.url),
-      "utf8",
-    ),
-  );
+  const directory = new URL("../migrations/", import.meta.url);
+  for (const file of (await readdir(directory))
+    .filter((f) => /^\d+.*\.sql$/.test(f))
+    .sort()) {
+    await rawSql(await readFile(new URL(file, directory), "utf8"));
+  }
   console.log(
     "Esquema store creado en PostgreSQL/Supabase. No se cargaron datos ficticios.",
   );

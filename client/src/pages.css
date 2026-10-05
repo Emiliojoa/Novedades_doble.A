@@ -2,6 +2,39 @@
   padding-block: 44px 70px;
   min-height: 55vh;
 }
+.auth-form .password-field {
+  margin-bottom: 18px;
+}
+.auth-form .password-field > label {
+  margin-bottom: 8px;
+}
+.password-input {
+  position: relative;
+}
+.password-input input {
+  padding-right: 54px;
+}
+.password-toggle {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--blue);
+  border-radius: 8px;
+}
+.password-toggle:hover {
+  background: #e8f2ff;
+}
+.password-field > small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
 .page-heading {
   display: flex;
   align-items: center;
@@ -745,7 +778,7 @@ td strong {
 }
 .stat strong {
   font-size: 34px;
-  font-family: "Manrope", sans-serif;
+  font-family: "Poppins", sans-serif;
 }
 .dashboard-summary {
   display: flex;

@@ -16,11 +16,17 @@ const currentYear = new Date().getFullYear();
 export function Logo() {
   return (
     <Link to="/" className="logo" aria-label="Doble A, inicio">
-      <span className="logo-mark">
-        A<span>·</span>A
-      </span>
+      <img
+        className="brand-logo"
+        src="/img/doblea.png"
+        alt=""
+        width="64"
+        height="64"
+      />
       <span>
-        DOBLE A<small>TECNOLOGÍA & MÁS</small>
+        NOVEDADES
+        <br />
+        DOBLE A
       </span>
     </Link>
   );

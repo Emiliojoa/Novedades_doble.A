@@ -17,8 +17,15 @@ export function sameOrigin(req, res, next) {
   if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     const origin = req.get("origin");
     const expected = process.env.APP_ORIGIN || "http://localhost:5173";
+    // Vite tries the next port when another local instance is running.
+    // Only explicit loopback development origins qualify; never production.
+    const localDevelopment =
+      process.env.NODE_ENV !== "production" &&
+      /^http:\/\/(localhost|127\.0\.0\.1|\[::1\]):(517[3-9]|518[0-3])$/.test(
+        origin || "",
+      );
     assert(
-      !origin || origin === expected,
+      !origin || origin === expected || localDevelopment,
       403,
       "Origen de solicitud no permitido.",
     );

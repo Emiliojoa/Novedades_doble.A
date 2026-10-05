@@ -25,13 +25,10 @@ export default function Home() {
             <span className="live-dot" /> TU PRÓXIMO HALLAZGO ESTÁ ACÁ
           </span>
           <h1>
-            Tecnología.
+            Tecnología,
             <br />
-            Ideas.{" "}
-            <span>
-              Y mucho
-              <br className="desktop-break" /> más.
-            </span>
+            accesorios e<br />
+            <span>impresiones 3D.</span>
           </h1>
           <p>
             Accesorios que te simplifican el día e impresiones 3D que hacen

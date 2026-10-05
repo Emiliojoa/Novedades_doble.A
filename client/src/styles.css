@@ -1,14 +1,16 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
 :root {
-  font-family: "DM Sans", Arial, sans-serif;
-  color: #172031;
-  background: #fff;
+  font-family: "Poppins", Arial, sans-serif;
+  color: #003a7c;
+  background: #f1f7ff;
   font-synthesis: none;
-  --blue: #244eea;
-  --ink: #172031;
-  --muted: #687282;
-  --line: #e4e7ee;
-  --soft: #f5f7fb;
+  --blue: #004aad;
+  --ink: #003a7c;
+  --muted: #506d90;
+  --line: #dce8f6;
+  --soft: #f1f7ff;
+  --teal: #00a884;
+  --yellow: #ffc107;
+  --orange: #ff8a00;
 }
 * {
   box-sizing: border-box;
@@ -72,7 +74,7 @@ p {
 h1,
 h2,
 h3 {
-  font-family: "Manrope", Arial, sans-serif;
+  font-family: "Poppins", Arial, sans-serif;
   letter-spacing: -0.04em;
 }
 h1 {
@@ -153,7 +155,7 @@ svg {
   align-items: center;
   gap: 12px;
   white-space: nowrap;
-  font-family: "Manrope", sans-serif;
+  font-family: "Poppins", sans-serif;
   font-weight: 800;
   font-size: 21px;
   line-height: 1.2;
@@ -175,7 +177,7 @@ svg {
 }
 .logo small {
   display: block;
-  font-family: "DM Sans", sans-serif;
+  font-family: "Poppins", sans-serif;
   letter-spacing: 1.9px;
   font-size: 8px;
   margin-top: 5px;
@@ -200,7 +202,7 @@ svg {
 }
 .header-search kbd {
   font:
-    10px "DM Sans",
+    10px "Poppins",
     sans-serif;
   background: #fff;
   padding: 4px 7px;
@@ -578,7 +580,7 @@ svg {
   position: absolute;
   bottom: 18px;
   left: 16px;
-  font-family: "Manrope", sans-serif;
+  font-family: "Poppins", sans-serif;
   font-size: 16px;
   letter-spacing: -0.5px;
   line-height: 1.3;

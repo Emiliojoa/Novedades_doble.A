@@ -15,6 +15,24 @@ test("Tienda completa: administración, cliente, pedido y responsive", async ({
   });
   await page.goto("/admin");
   await expect(page).toHaveURL(/login/);
+  await expect(page.getByLabel("Contraseña", { exact: true })).toHaveAttribute(
+    "type",
+    "password",
+  );
+  await page
+    .getByRole("button", { name: "Mostrar contraseña", exact: true })
+    .click();
+  await expect(page.getByLabel("Contraseña", { exact: true })).toHaveAttribute(
+    "type",
+    "text",
+  );
+  await page
+    .getByRole("button", { name: "Ocultar contraseña", exact: true })
+    .click();
+  await expect(page.getByLabel("Contraseña", { exact: true })).toHaveAttribute(
+    "type",
+    "password",
+  );
   await page.getByLabel("Email", { exact: true }).fill("admin@example.test");
   await page
     .getByLabel("Contraseña", { exact: true })
@@ -62,6 +80,16 @@ test("Tienda completa: administración, cliente, pedido y responsive", async ({
     ),
   ).toBeVisible();
   await page.getByRole("link", { name: "Registrate", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Mostrar contraseña", exact: true })
+    .click();
+  await expect(page.getByLabel("Contraseña", { exact: true })).toHaveAttribute(
+    "type",
+    "text",
+  );
+  await page
+    .getByRole("button", { name: "Ocultar contraseña", exact: true })
+    .click();
   await page.getByLabel("Nombre", { exact: true }).fill("Cliente");
   await page.getByLabel("Apellido", { exact: true }).fill("Prueba");
   await page

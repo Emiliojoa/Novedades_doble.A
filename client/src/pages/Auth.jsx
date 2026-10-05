@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowUpRight, LockKeyhole } from "lucide-react";
+import { ArrowUpRight, LockKeyhole, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { ErrorBox } from "../components/UI";
 export default function Auth({ register = false }) {
@@ -8,7 +8,8 @@ export default function Auth({ register = false }) {
     navigate = useNavigate(),
     [params] = useSearchParams();
   const [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [showPassword, setShowPassword] = useState(false);
   const rawNext = params.get("next");
   const next =
     rawNext?.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/perfil";
@@ -89,22 +90,41 @@ export default function Auth({ register = false }) {
             <input name="phone" autoComplete="tel" maxLength={40} />
           </label>
         )}
-        <label>
-          Contraseña
-          <input
-            type="password"
-            name="password"
-            aria-label="Contraseña"
-            aria-describedby={register ? "password-help" : undefined}
-            required
-            minLength={register ? 12 : 1}
-            maxLength={128}
-            autoComplete={register ? "new-password" : "current-password"}
-          />
+        <div className="password-field">
+          <label htmlFor="auth-password">Contraseña</label>
+          <div className="password-input">
+            <input
+              id="auth-password"
+              type={showPassword ? "text" : "password"}
+              name="password"
+              aria-label="Contraseña"
+              aria-describedby={register ? "password-help" : undefined}
+              required
+              minLength={register ? 12 : 1}
+              maxLength={128}
+              autoComplete={register ? "new-password" : "current-password"}
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              aria-label={
+                showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+              }
+              aria-pressed={showPassword}
+              aria-controls="auth-password"
+              onClick={() => setShowPassword((value) => !value)}
+            >
+              {showPassword ? (
+                <EyeOff size={20} aria-hidden="true" />
+              ) : (
+                <Eye size={20} aria-hidden="true" />
+              )}
+            </button>
+          </div>
           {register && (
             <small id="password-help">Usá al menos 12 caracteres.</small>
           )}
-        </label>
+        </div>
         <button className="button primary full" disabled={busy}>
           {busy ? "Un momento…" : register ? "Crear cuenta" : "Ingresar"}
           <ArrowUpRight size={18} />

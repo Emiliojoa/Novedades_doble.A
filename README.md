@@ -15,7 +15,7 @@ npm run dev
 - Administración: http://localhost:5173/admin
 - API: http://127.0.0.1:3001/api
 
-Vite envía `/api` y `/uploads` a Express. Abrir la tienda con **localhost:5173**, que coincide con el origen permitido predeterminado. Si cambiás el puerto/origen, actualizá `APP_ORIGIN` en `server/.env` y el proxy Vite.
+Vite envía `/api` y `/uploads` a Express. Abrir la URL que indique Vite: normalmente **localhost:5173**; si está ocupado, puede usar 5174. En desarrollo se admiten exclusivamente los hosts locales `localhost`, `127.0.0.1` y `[::1]` en los puertos 5173–5183, además de `APP_ORIGIN`. En producción solo se admite el origen exacto configurado en `APP_ORIGIN`. Para otros orígenes, actualizar esa variable; si cambia el puerto de la API, ajustar también el proxy Vite.
 
 ## Variables de entorno y Supabase
 
@@ -40,7 +40,7 @@ La configuración está en **`server/.env`**, ignorado por Git. El `.env` propor
 npm run db:migrate
 ```
 
-Ejecuta `server/migrations/001_initial.sql`, creando el esquema privado **`store`** con usuarios, sesiones, categorías, productos, carritos, pedidos, detalles y solicitudes 3D. Es repetible y no borra tablas existentes. También puede ejecutarse desde el SQL Editor de Supabase. Se revocan permisos a `anon`/`authenticated` y se habilita RLS; Express accede por su conexión privada.
+Ejecuta los archivos de `server/migrations/` en orden: `001_initial.sql` crea el esquema privado **`store`** con usuarios, sesiones, categorías, productos, carritos, pedidos, detalles y solicitudes 3D; `002_single_admin.sql` limita la base a un único ADMIN. Son repetibles y no borran cuentas ni tablas existentes. También pueden ejecutarse en ese orden desde el SQL Editor de Supabase. Se revocan permisos a `anon`/`authenticated` y se habilita RLS; Express accede por su conexión privada.
 
 En este entorno, la migración ya fue aplicada a la base configurada y se verificó el flujo PostgreSQL con una transacción que se revirtió al terminar. Las tablas previas de `public` permanecen intactas. Para ver las nuevas tablas en el dashboard, seleccionar el esquema **store**.
 
@@ -65,7 +65,7 @@ La contraseña debe tener al menos 12 caracteres. Luego:
 npm run admin:create
 ```
 
-Ingresar por `/login` y abrir `/admin`. El comando crea un ADMIN nuevo; **no** eleva cuentas existentes ni cambia sus contraseñas. Después de ejecutarlo, quitar `ADMIN_PASSWORD` del archivo. No hay contraseña predeterminada ni credenciales incluidas en el código. El registro público siempre crea `CLIENT`.
+Ingresar por `/login` y abrir `/admin`. El comando crea el **único ADMIN** si aún no existe. Si se vuelve a ejecutar, rechaza la creación sin modificar la cuenta ni la contraseña existentes. La base también impide un segundo ADMIN mediante un índice único, incluso ante ejecuciones simultáneas. El comando **no** eleva cuentas existentes; usar un email que no esté registrado como cliente. Después de ejecutarlo, quitar `ADMIN_PASSWORD` del archivo. No hay contraseña predeterminada ni credenciales incluidas en el código. El registro público siempre crea `CLIENT`.
 
 ## Primer uso
 
