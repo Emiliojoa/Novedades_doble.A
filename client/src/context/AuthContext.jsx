@@ -52,6 +52,7 @@ export function AuthProvider({ children }) {
         refreshCart,
         authenticate,
         logout,
+        updateCurrentUser: setUser,
       }}
     >
       {children}

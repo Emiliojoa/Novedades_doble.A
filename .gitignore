@@ -7,3 +7,4 @@ server/uploads/
 *.log
 test-results/
 playwright-report/
+.agents

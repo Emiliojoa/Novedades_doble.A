@@ -9,6 +9,7 @@ import {
   Users,
   ClipboardList,
   ArrowUpRight,
+  MessageCircle,
 } from "lucide-react";
 import { useApi } from "../hooks/useApi";
 import { api } from "../services/api";
@@ -23,6 +24,7 @@ import {
 } from "../components/UI";
 import { OrdersTable } from "./Account";
 import { date, money } from "../utils/format";
+import { quoteWhatsAppLink } from "../utils/whatsapp";
 
 export function Dashboard() {
   const { data, loading, error } = useApi("/admin/stats");
@@ -819,6 +821,30 @@ export function AdminQuotes() {
                   {q.email}
                 </a>
               </p>
+              <div className="quote-contact">
+                {quoteWhatsAppLink(q) ? (
+                  <a
+                    className="button secondary"
+                    href={quoteWhatsAppLink(q)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Abrir WhatsApp de ${q.first_name} ${q.last_name}`}
+                  >
+                    <MessageCircle size={18} aria-hidden="true" />
+                    <span>WhatsApp · {q.phone}</span>
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  </a>
+                ) : (
+                  <p className="muted">
+                    {q.phone
+                      ? `Teléfono: ${q.phone}. Falta un formato internacional válido para abrir WhatsApp.`
+                      : "Este cliente todavía no tiene un teléfono registrado."}{" "}
+                    <Link className="text-link" to="/admin/usuarios">
+                      Actualizar teléfono
+                    </Link>
+                  </p>
+                )}
+              </div>
               {q.reference && (
                 <p>
                   <a

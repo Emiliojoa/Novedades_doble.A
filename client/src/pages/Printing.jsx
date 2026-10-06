@@ -1,25 +1,67 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Box, ArrowUpRight, Layers3, Lightbulb, Check } from "lucide-react";
+import {
+  Box,
+  ArrowUpRight,
+  Layers3,
+  Lightbulb,
+  Check,
+  ImagePlus,
+  X,
+} from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services/api";
 import { ErrorBox } from "../components/UI";
 export default function Printing() {
   const { user } = useAuth();
+  const imageInput = useRef(null);
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [imageError, setImageError] = useState("");
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+  function selectImage(e) {
+    const file = e.target.files[0];
+    setImageError("");
+    setSent(false);
+    if (
+      file &&
+      (!["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+        file.size > 5 * 1024 * 1024)
+    ) {
+      setImageError("Elegí una imagen JPG, PNG o WebP de hasta 5 MB.");
+      e.target.value = "";
+      setImage(null);
+      setPreview("");
+      return;
+    }
+    setImage(file || null);
+    setPreview(file ? URL.createObjectURL(file) : "");
+  }
   const [error, setError] = useState(""),
     [sent, setSent] = useState(false),
     [busy, setBusy] = useState(false);
   async function submit(e) {
     e.preventDefault();
+    if (busy || imageError) {
+      imageInput.current?.focus();
+      return;
+    }
     setBusy(true);
     setError("");
     const form = e.currentTarget;
-    const data = Object.fromEntries(new FormData(form));
-    data.quantity = Number(data.quantity);
+    setSent(false);
+    const data = new FormData(form);
+    if (!image) data.delete("image");
     try {
       await api("/quotes", { method: "POST", body: data });
       setSent(true);
       form.reset();
+      setImage(null);
+      setPreview("");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -87,10 +129,10 @@ export default function Printing() {
           </small>
         </div>
         {user ? (
-          <form className="panel" onSubmit={submit}>
+          <form className="panel quote-form" onSubmit={submit} aria-busy={busy}>
             <ErrorBox message={error} />
             {sent && (
-              <div className="success">
+              <div className="success" role="status">
                 <Check size={18} />
                 Solicitud enviada. Podés verla en{" "}
                 <Link to="/perfil">tu perfil</Link>.
@@ -98,7 +140,115 @@ export default function Printing() {
             )}
             <label>
               Nombre del diseño
-              <input name="name" required maxLength={120} />
+              <input
+                name="name"
+                required
+                maxLength={120}
+                placeholder="Ej.: organizador para mi escritorio"
+              />
+            </label>
+            <div className="quote-image-field">
+              <label htmlFor="quote-image">
+                Imagen de referencia{" "}
+                <span className="quote-optional">(opcional)</span>
+              </label>
+              <p id="quote-image-help" className="quote-hint">
+                Subí una foto, un dibujo o una captura de tu idea. JPG, PNG o
+                WebP, hasta 5 MB.
+              </p>
+              <div className="quote-upload">
+                <ImagePlus size={24} aria-hidden="true" />
+                <input
+                  ref={imageInput}
+                  id="quote-image"
+                  name="image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={selectImage}
+                  disabled={busy}
+                  aria-invalid={Boolean(imageError)}
+                  aria-describedby={
+                    imageError ? "quote-image-error" : "quote-image-help"
+                  }
+                />
+              </div>
+              {imageError && (
+                <p
+                  id="quote-image-error"
+                  role="alert"
+                  className="quote-image-error"
+                >
+                  {imageError}
+                </p>
+              )}
+              {preview && (
+                <div className="quote-preview">
+                  <img
+                    src={preview}
+                    alt="Vista previa de tu imagen de referencia"
+                  />
+                  <span>{image.name}</span>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setImage(null);
+                      setPreview("");
+                      setImageError("");
+                      imageInput.current.value = "";
+                    }}
+                  >
+                    <X size={16} aria-hidden="true" /> Quitar imagen
+                  </button>
+                </div>
+              )}
+            </div>
+            <fieldset className="quote-measurements">
+              <legend>Medidas del diseño</legend>
+              <p className="quote-hint" id="quote-measure-help">
+                Ingresá las medidas aproximadas en centímetros. Podés usar
+                decimales.
+              </p>
+              <div className="quote-dimensions">
+                {[
+                  ["width", "Ancho"],
+                  ["height", "Alto"],
+                  ["depth", "Profundidad"],
+                ].map(([name, label]) => (
+                  <label key={name}>
+                    {label}
+                    <span className="quote-number-unit">
+                      <input
+                        aria-label={`${label} en centímetros`}
+                        aria-describedby="quote-measure-help"
+                        name={name}
+                        type="number"
+                        inputMode="decimal"
+                        min="0.01"
+                        max="10000"
+                        step="0.01"
+                        placeholder="Ej.: 10"
+                        required
+                      />
+                      <span aria-hidden="true">cm</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className="quote-quantity">
+              Cantidad de unidades
+              <input
+                name="quantity"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="10000"
+                step="1"
+                defaultValue="1"
+                required
+              />
             </label>
             <label>
               ¿Qué te gustaría crear?
@@ -108,32 +258,27 @@ export default function Printing() {
                 minLength={10}
                 maxLength={5000}
                 rows={4}
-                placeholder="Medidas, uso, colores y observaciones…"
+                placeholder="Contanos para qué lo vas a usar y qué colores o detalles te gustaría incluir."
               />
             </label>
-            <div className="form-grid">
-              <label>
-                Cantidad
-                <input
-                  name="quantity"
-                  type="number"
-                  min="1"
-                  max="10000"
-                  defaultValue="1"
-                  required
-                />
-              </label>
-              <label>
-                Enlace de referencia (opcional)
-                <input
-                  name="reference"
-                  type="url"
-                  pattern="https://.*"
-                  placeholder="https://…"
-                  maxLength={2048}
-                />
-              </label>
-            </div>
+            <label>
+              Tu WhatsApp
+              <input
+                name="phone"
+                type="tel"
+                autoComplete="tel"
+                defaultValue={user.phone || ""}
+                required
+                maxLength={40}
+                pattern={"(?:\\+|00)[1-9][0-9\\s\\(\\)\\-]{7,30}"}
+                placeholder="+54 9 11 1234 5678"
+                aria-describedby="quote-phone-help"
+              />
+              <small id="quote-phone-help">
+                Incluí el código de país. Lo usaremos para conversar sobre tu
+                impresión 3D y actualizar el teléfono de tu cuenta.
+              </small>
+            </label>
             <button className="button primary" disabled={busy}>
               {busy ? "Enviando…" : "Enviar solicitud"}
               <ArrowUpRight size={18} />

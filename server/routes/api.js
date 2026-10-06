@@ -15,6 +15,7 @@ import { listOrders, changeStatus } from "../services/orders.js";
 import { listQuotes, updateQuote } from "../services/quotes.js";
 import { assert } from "../utils/errors.js";
 import { saveImage } from "../services/images.js";
+import * as users from "../services/users.js";
 export const uploadsDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../uploads",
@@ -32,6 +33,10 @@ api.param("id", (req, res, next, id) => {
   next();
 });
 const admin = [authenticate, adminOnly];
+const quoteUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 8, fieldSize: 20000 },
+});
 const accessLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,
@@ -95,7 +100,27 @@ api.get("/orders/:id", authenticate, commerce.getOrder);
 api.post(
   "/quotes",
   authenticate,
+  quoteUpload.single("image"),
+  (req, res, next) => {
+    if (req.is("multipart/form-data")) {
+      req.body.quantity = Number(req.body.quantity);
+      const { width, height, depth, ...body } = req.body;
+      req.body = {
+        ...body,
+        dimensions: {
+          width: Number(width),
+          height: Number(height),
+          depth: Number(depth),
+        },
+      };
+    }
+    next();
+  },
   validate(schemas.quoteSchema),
+  async (req, res, next) => {
+    if (req.file) req.data.reference = await saveUploadedImage(req.file.buffer);
+    next();
+  },
   commerce.createQuote,
 );
 api.get("/quotes", authenticate, commerce.listQuotes);
@@ -121,6 +146,38 @@ api.patch(
 api.get("/admin/customers", ...admin, async (req, res) =>
   res.json(await customers()),
 );
+api.get("/admin/users", ...admin, async (req, res) =>
+  res.json(await users.listUsers()),
+);
+api.post(
+  "/admin/users",
+  ...admin,
+  validate(schemas.registerSchema),
+  async (req, res) => res.status(201).json(await users.createUser(req.data)),
+);
+api.put(
+  "/admin/users/:id",
+  ...admin,
+  validate(schemas.adminUserSchema),
+  async (req, res) =>
+    res.json(await users.updateUser(Number(req.params.id), req.data)),
+);
+api.patch(
+  "/admin/users/:id/password",
+  ...admin,
+  validate(schemas.adminPasswordSchema),
+  async (req, res) => {
+    await users.changePassword(Number(req.params.id), req.data.password);
+    res.json({
+      message:
+        "Contraseña actualizada. Se cerraron las sesiones de esta cuenta.",
+    });
+  },
+);
+api.delete("/admin/users/:id", ...admin, async (req, res) => {
+  await users.deleteUser(Number(req.params.id));
+  res.json({ message: "Usuario eliminado." });
+});
 api.get("/admin/quotes", ...admin, async (req, res) =>
   res.json(await listQuotes()),
 );
@@ -139,8 +196,7 @@ const upload = multer({
     fields: 0,
   },
 });
-api.post("/uploads", ...admin, upload.single("image"), async (req, res) => {
-  const b = req.file?.buffer;
+async function saveUploadedImage(b) {
   assert(b?.length >= 12, 400, "Seleccioná una imagen PNG, JPEG o WebP.");
   let extension;
   if (b.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])))
@@ -152,7 +208,8 @@ api.post("/uploads", ...admin, upload.single("image"), async (req, res) => {
   )
     extension = "webp";
   assert(extension, 400, "Formato inválido. Solo PNG, JPEG o WebP.");
-  res.status(201).json({
-    url: await saveImage(b, extension, uploadsDir),
-  });
+  return saveImage(b, extension, uploadsDir);
+}
+api.post("/uploads", ...admin, upload.single("image"), async (req, res) => {
+  res.status(201).json({ url: await saveUploadedImage(req.file?.buffer) });
 });

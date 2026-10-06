@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+/* Design tokens Novedades Doble A — fuente única de verdad para Tailwind.
+   Paleta guía: #004AAD #00A884 #FFC107 #FF8A00 #003A7C #F1F7FF
+   Tipografía: Poppins 400 Regular / 500 Medium / 600 Semibold / 700 Bold */
+@theme {
+  --color-primary: #004aad;
+  --color-navy: #003a7c;
+  --color-brand-green: #00a884;
+  --color-brand-yellow: #ffc107;
+  --color-brand-orange: #ff8a00;
+  --color-cloud: #f1f7ff;
+  --color-ink-soft: #506d90;
+  --color-line: #dce8f6;
+
+  --font-sans: "Poppins", Arial, sans-serif;
+}
+
+/* Base mínima: el resto vive en utilidades Tailwind en los componentes.
+   Se mantiene compat con CSS legacy (styles/pages/brand) durante la migración. */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+  body {
+    background-color: var(--color-cloud);
+    color: var(--color-navy);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Primitivas compartidas para reemplazar .button/.badge/.notice legacy */
+@layer components {
+  .tw-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-xs font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .tw-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-xs font-semibold text-white transition hover:bg-navy active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .tw-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-yellow px-5 py-3 text-xs font-semibold text-navy transition hover:brightness-95 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .tw-btn-success {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-green px-5 py-3 text-xs font-semibold text-white transition hover:brightness-95 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .tw-btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-white px-5 py-3 text-xs font-semibold text-primary transition hover:bg-cloud active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .tw-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-[#ffe7eb] px-5 py-3 text-xs font-semibold text-[#ad2434] transition hover:brightness-95 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .tw-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold;
+  }
+  .tw-card {
+    @apply overflow-hidden rounded-2xl border border-line bg-white shadow-[0_3px_13px_#003a7c0a];
+  }
+  .tw-input {
+    @apply w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-navy placeholder:text-[#647e9f] focus:border-primary focus:outline-none;
+  }
+  .tw-eyebrow {
+    @apply text-[10px] font-bold tracking-[1.5px] uppercase;
+  }
+}

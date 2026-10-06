@@ -17,6 +17,7 @@ import Auth from "./pages/Auth";
 import Cart from "./pages/Cart";
 import Account, { OrderDetail } from "./pages/Account";
 import Printing from "./pages/Printing";
+import AdminUsers from "./pages/AdminUsers";
 import {
   Dashboard,
   AdminProducts,
@@ -83,6 +84,7 @@ export default function App() {
               <Route path="pedidos" element={<AdminOrders />} />
               <Route path="pedidos/:id" element={<OrderDetail admin />} />
               <Route path="clientes" element={<AdminCustomers />} />
+              <Route path="usuarios" element={<AdminUsers />} />
               <Route path="solicitudes" element={<AdminQuotes />} />
             </Route>
           </Route>

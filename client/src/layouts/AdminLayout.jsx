@@ -6,6 +6,7 @@ import {
   Tags,
   ClipboardList,
   Users,
+  UserRoundCog,
   Box,
   ArrowLeft,
 } from "lucide-react";
@@ -18,6 +19,7 @@ const links = [
   ["categorias", "Categorías", Tags],
   ["pedidos", "Pedidos", ClipboardList],
   ["clientes", "Clientes", Users],
+  ["usuarios", "Usuarios", UserRoundCog],
   ["solicitudes", "Solicitudes 3D", Box],
 ];
 export default function AdminLayout() {

@@ -348,6 +348,7 @@ test("Presupuestos 3D vinculados al cliente y estados administrativos", async ()
     cookie: client,
     body: {
       name: "Organizador",
+      phone: "+54 9 11 1234 5678",
       description: "Organizador para cables a medida.",
       quantity: 2,
       reference: "",

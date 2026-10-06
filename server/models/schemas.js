@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { internationalPhone } from "../../shared/phone.js";
 const name = z.string().trim().min(1).max(120);
 const id = z.number().int().positive();
 const quantity = z.number().int().min(1).max(10000);
@@ -16,6 +17,10 @@ export const loginSchema = z
     email: z.email().trim().toLowerCase(),
     password: z.string().min(1).max(128),
   })
+  .strict();
+export const adminUserSchema = registerSchema.omit({ password: true });
+export const adminPasswordSchema = z
+  .object({ password: z.string().min(12).max(128) })
   .strict();
 export const categorySchema = z
   .object({ name, parent_id: id.nullable().default(null) })
@@ -61,8 +66,24 @@ export const statusSchema = z
 export const quoteSchema = z
   .object({
     name,
+    phone: z
+      .string()
+      .max(40)
+      .transform(internationalPhone)
+      .refine(
+        Boolean,
+        "Ingresá tu WhatsApp con código de país, por ejemplo +54 9 11 1234 5678.",
+      ),
     description: z.string().trim().min(10).max(5000),
     quantity,
+    dimensions: z
+      .object({
+        width: z.number().positive().max(10000),
+        height: z.number().positive().max(10000),
+        depth: z.number().positive().max(10000),
+      })
+      .strict()
+      .optional(),
     reference: z
       .string()
       .max(2048)

@@ -123,6 +123,10 @@ test("Tienda completa: administración, cliente, pedido y responsive", async ({
   await expect(page.getByText("cliente-ui@example.test")).toBeVisible();
   await page.goto("/impresiones-3d");
   await page.getByLabel("Nombre del diseño").fill("Organizador de prueba");
+  await page.getByLabel("Ancho en centímetros").fill("10");
+  await page.getByLabel("Alto en centímetros").fill("5");
+  await page.getByLabel("Profundidad en centímetros").fill("4");
+  await page.getByLabel("Tu WhatsApp").fill("+54 9 11 1234 5678");
   await page
     .getByLabel("¿Qué te gustaría crear?")
     .fill("Un organizador de cables para mi escritorio.");
@@ -172,7 +176,9 @@ test("Tienda completa: administración, cliente, pedido y responsive", async ({
   await page.getByRole("link", { name: "Ver", exact: true }).click();
   await expect(page.getByText("cliente-ui@example.test")).toBeVisible();
   await page.getByRole("button", { name: "Confirmado", exact: true }).click();
-  await expect(page.locator(".badge")).toHaveText("Confirmado");
+  await expect(
+    page.locator("span").filter({ hasText: /^Confirmado$/ }),
+  ).toBeVisible();
   for (const route of [
     "/admin",
     "/admin/productos",

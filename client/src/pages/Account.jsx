@@ -118,7 +118,19 @@ export default function Account() {
             <div className="panel" key={q.id}>
               <Badge status={q.status} />
               <h3>{q.name}</h3>
-              <p>{q.description}</p>
+              <p className="description">{q.description}</p>
+              {q.reference && (
+                <p>
+                  <a
+                    className="text-link"
+                    href={q.reference}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Ver referencia
+                  </a>
+                </p>
+              )}
               <small>
                 {q.quantity} unidades · {date(q.created_at)}
               </small>

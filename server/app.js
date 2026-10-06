@@ -18,7 +18,7 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        "img-src": ["'self'", "https:", "data:"],
+        "img-src": ["'self'", "https:", "data:", "blob:"],
         "upgrade-insecure-requests":
           process.env.NODE_ENV === "production" ? [] : null,
       },

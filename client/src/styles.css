@@ -3,14 +3,54 @@
   color: #003a7c;
   background: #f1f7ff;
   font-synthesis: none;
-  --blue: #004aad;
-  --ink: #003a7c;
+
+  /* ================= PALETA NOVEDADES DOBLE A (guía) =================
+     Azul principal #004AAD → encabezados, botones primarios, fondo secciones
+     Verde #00A884 → destacados, disponibilidad, iconos
+     Amarillo #FFC107 → acentos, promociones, énfasis
+     Naranja #FF8A00 → CTAs secundarios, ofertas, indicadores
+     Azul oscuro #003A7C → texto principal, barras navegación
+     Fondo #F1F7FF → fondos, secciones claras, cards */
+  --color-primary: #004aad;
+  --color-green: #00a884;
+  --color-yellow: #ffc107;
+  --color-orange: #ff8a00;
+  --color-navy: #003a7c;
+  --color-bg: #f1f7ff;
+
+  /* Aliases legacy (compat con brand.css / pages.css) */
+  --blue: var(--color-primary);
+  --ink: var(--color-navy);
+  --teal: var(--color-green);
+  --yellow: var(--color-yellow);
+  --orange: var(--color-orange);
+  --soft: var(--color-bg);
+
   --muted: #506d90;
   --line: #dce8f6;
-  --soft: #f1f7ff;
-  --teal: #00a884;
-  --yellow: #ffc107;
-  --orange: #ff8a00;
+
+  /* ================= TIPOGRAFÍA Poppins =================
+     Títulos → Poppins Bold 700
+     Subtítulos → Poppins Semibold 600
+     Texto general → Poppins Regular 400
+     Botones/labels → Poppins Medium-Semibold 500/600 */
+  --font-family: "Poppins", Arial, sans-serif;
+  --font-title-weight: 700;
+  --font-subtitle-weight: 600;
+  --font-body-weight: 400;
+  --font-button-weight: 600;
+
+  /* Derivados UI según guía */
+  --button-primary-bg: var(--color-primary);
+  --button-secondary-bg: var(--color-yellow);
+  --button-success-bg: var(--color-green);
+  --button-danger-bg: #ffe7eb;
+  --button-danger-text: #ad2434;
+  --button-disabled-bg: #d9e2ec;
+  --input-focus: var(--color-primary);
+  --stock-ok: #00a884;
+  --stock-low: #ff8a00;
+  --stock-out: #e5484d;
 }
 * {
   box-sizing: border-box;
@@ -74,22 +114,37 @@ p {
 h1,
 h2,
 h3 {
-  font-family: "Poppins", Arial, sans-serif;
+  font-family: var(--font-family);
   letter-spacing: -0.04em;
 }
 h1 {
   font-size: 42px;
   line-height: 1.15;
-  font-weight: 800;
+  font-weight: var(--font-title-weight);
 }
 h2 {
   font-size: 29px;
   line-height: 1.25;
-  font-weight: 800;
+  font-weight: var(--font-title-weight);
 }
 h3 {
   font-size: 18px;
   line-height: 1.4;
+  font-weight: var(--font-subtitle-weight);
+}
+body,
+p,
+input,
+select,
+textarea,
+button {
+  font-family: var(--font-family);
+  font-weight: var(--font-body-weight);
+}
+label,
+.button,
+button {
+  font-weight: var(--font-button-weight);
 }
 p {
   line-height: 1.7;
