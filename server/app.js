@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { ZodError } from "zod";
 import { api, uploadsDir } from "./routes/api.js";
-import { sameOrigin } from "./middleware/security.js";
+import { cors, sameOrigin } from "./middleware/security.js";
 
 export const app = express();
 app.disable("x-powered-by");
@@ -27,6 +27,7 @@ app.use(
       process.env.NODE_ENV === "production" ? undefined : false,
   }),
 );
+app.use(["/api", "/uploads"], cors);
 app.use(express.json({ limit: "32kb" }));
 app.use(cookieParser());
 app.use("/api", (req, res, next) => {

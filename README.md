@@ -121,3 +121,18 @@ Incluye tienda, categorías dinámicas, búsqueda y filtros, detalle, carrito au
 El pago y la entrega se coordinan con el local. No se integraron pasarela de pago, envíos, recuperación de contraseña por email, promociones, tarifas mayoristas, archivos STL/3MF ni cotización automática. El modelo reserva atributos mayoristas y mantiene responsabilidades separadas para ampliar estas funciones. Los datos públicos concretos del local (domicilio, horarios y teléfono comercial) deben completarse con información real antes de publicar.
 
 Ver `ARCHITECTURE.md` para entidades, relaciones, rutas y endpoints.
+
+
+## Render: frontend y backend separados
+
+El frontend lee `VITE_API_URL` al compilar. En el servicio frontend configurar
+`VITE_API_URL=https://novedades-doble-a-1.onrender.com` y volver a ejecutar el build.
+En el backend configurar `APP_ORIGIN=https://novedades-doble-a.onrender.com` y
+`NODE_ENV=production`. No agregar `/api` a las rutas de los componentes: el cliente
+HTTP centralizado agrega ese prefijo. Sin `VITE_API_URL`, se conservan las rutas
+relativas y el proxy local de Vite para `/api` y `/uploads`.
+
+CORS permite credenciales exclusivamente desde el origen configurado. En producci?n
+la cookie de sesi?n usa `SameSite=None; Secure` para los dominios separados (en local,
+`SameSite=Lax`). Los navegadores que bloquean cookies de terceros pueden impedir la
+sesi?n entre estos dominios; un proxy bajo el mismo origen evita esa restricci?n.
