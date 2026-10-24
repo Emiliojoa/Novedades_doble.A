@@ -99,3 +99,72 @@ export const quoteStatusSchema = z
     status: z.enum(["PENDIENTE", "EN_REVISION", "CONTACTADO", "CERRADO"]),
   })
   .strict();
+
+export const checkoutSchema = z
+  .object({
+    payment_method: z.enum(["EFECTIVO", "TRANSFERENCIA"]),
+    idempotency_key: z.uuid(),
+    expected_subtotal: z
+      .number()
+      .int()
+      .nonnegative()
+      .max(Number.MAX_SAFE_INTEGER),
+    expected_total: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+    receipt_id: z.uuid().optional(),
+    bank_alias: z.string().trim().max(100).optional(),
+  })
+  .strict()
+  .superRefine((data, ctx) => {
+    if (
+      data.payment_method === "TRANSFERENCIA" &&
+      (!data.receipt_id || !data.bank_alias)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Adjuntá el comprobante y verificá el alias de transferencia.",
+      });
+    if (
+      data.payment_method === "EFECTIVO" &&
+      (data.receipt_id || data.bank_alias)
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "El efectivo no requiere comprobante ni alias.",
+      });
+  });
+export const paymentSettingsSchema = z
+  .object({
+    bank_alias: z
+      .string()
+      .trim()
+      .min(6)
+      .max(100)
+      .regex(/^[a-zA-Z0-9.-]+$/, "Alias inválido."),
+    cash_discount_percentage: z.number().int().min(0).max(100),
+  })
+  .strict();
+export const receiptLinkSchema = z.object({ receipt_id: z.uuid() }).strict();
+export const paymentReviewSchema = z
+  .object({
+    status: z.enum(["APPROVED", "REJECTED"]),
+    expected_status: z.enum(["PENDING_PAYMENT", "PENDING_VERIFICATION"]),
+    receipt_id: z.uuid().optional(),
+    reason: z.string().trim().max(1000).optional(),
+  })
+  .strict()
+  .refine(
+    (d) => d.status !== "REJECTED" || !!d.reason,
+    "Indicá el motivo del rechazo.",
+  );
+export const paymentListSchema = z
+  .object({
+    page: z.coerce.number().int().positive().max(1000000).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(15),
+    search: z.string().trim().max(150).optional(),
+    payment_method: z.enum(["EFECTIVO", "TRANSFERENCIA"]).optional(),
+    payment_status: z
+      .enum(["PENDING_PAYMENT", "PENDING_VERIFICATION", "APPROVED", "REJECTED"])
+      .optional(),
+    status: statusSchema.shape.status.optional(),
+  })
+  .strict();

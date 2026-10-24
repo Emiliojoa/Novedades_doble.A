@@ -18,7 +18,7 @@ export const removeItem = async (req, res) =>
 export const clearCart = async (req, res) =>
   res.json(await cart.clearCart(req.user.id));
 export const createOrder = async (req, res) =>
-  res.status(201).json(await orders.createOrder(req.user));
+  res.status(201).json(await orders.createOrder(req.user, req.data));
 export const listOrders = async (req, res) =>
   res.json(await orders.listOrders(req.user));
 export const getOrder = async (req, res) =>

@@ -1,5 +1,6 @@
 import { Package, ArrowRight, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
+import { mediaUrl } from "../services/api";
 import { money, statusLabel } from "../utils/format";
 
 export function Loading() {
@@ -49,7 +50,7 @@ export function ProductImage({ product, className = "" }) {
     >
       {product.image ? (
         <img
-          src={product.image}
+          src={mediaUrl(product.image)}
           alt={product.name}
           loading="lazy"
           className="absolute inset-0 z-10 h-full w-full object-contain bg-[#f3f8ff]"
@@ -141,7 +142,9 @@ const STATUS_STYLES = {
 export function Badge({ status }) {
   const key = status.toLowerCase();
   return (
-    <span className={`tw-badge ${STATUS_STYLES[key] ?? "bg-cloud text-ink-soft"}`}>
+    <span
+      className={`tw-badge ${STATUS_STYLES[key] ?? "bg-cloud text-ink-soft"}`}
+    >
       {statusLabel(status)}
     </span>
   );
@@ -167,9 +170,7 @@ export function PageHeading({ eyebrow, title, description, children }) {
   return (
     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        {eyebrow && (
-          <span className="tw-eyebrow text-primary">{eyebrow}</span>
-        )}
+        {eyebrow && <span className="tw-eyebrow text-primary">{eyebrow}</span>}
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-navy sm:text-4xl">
           {title}
         </h1>

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 import { ZodError } from "zod";
 import { api, uploadsDir } from "./routes/api.js";
-import { sameOrigin } from "./middleware/security.js";
+import { cors, sameOrigin } from "./middleware/security.js";
 
 export const app = express();
 app.disable("x-powered-by");
@@ -27,6 +27,7 @@ app.use(
       process.env.NODE_ENV === "production" ? undefined : false,
   }),
 );
+app.use(["/api", "/uploads"], cors);
 app.use(express.json({ limit: "32kb" }));
 app.use(cookieParser());
 app.use("/api", (req, res, next) => {
@@ -50,6 +51,10 @@ app.use("/api", (req, res) =>
 );
 app.use(
   "/uploads",
+  (req, res, next) => {
+    res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    next();
+  },
   express.static(uploadsDir, {
     dotfiles: "deny",
     immutable: true,
@@ -74,7 +79,9 @@ app.use((error, req, res, next) => {
       details: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
     });
   if (error.code === "LIMIT_FILE_SIZE")
-    return res.status(400).json({ error: "La imagen no puede superar 5 MB." });
+    return res.status(400).json({
+      error: "El archivo supera el tamaño máximo permitido para esta carga.",
+    });
   if (error.name === "MulterError")
     return res.status(400).json({ error: "Carga de imagen inválida." });
   const status = error.status || 500;

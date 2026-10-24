@@ -1,3 +1,4 @@
+import PaymentSettings from "./pages/PaymentAdmin";
 import { useEffect } from "react";
 import {
   BrowserRouter,
@@ -82,6 +83,7 @@ export default function App() {
               <Route path="categorias" element={<AdminCategories />} />
               <Route path="stock" element={<AdminStock />} />
               <Route path="pedidos" element={<AdminOrders />} />
+              <Route path="pagos" element={<PaymentSettings />} />
               <Route path="pedidos/:id" element={<OrderDetail admin />} />
               <Route path="clientes" element={<AdminCustomers />} />
               <Route path="usuarios" element={<AdminUsers />} />

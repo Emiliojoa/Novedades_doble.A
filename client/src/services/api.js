@@ -1,6 +1,15 @@
+// An empty origin preserves Vite's local /api and /uploads proxies.
+const backend = (import.meta.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
+export const API_BASE_URL = backend.endsWith("/api")
+  ? backend
+  : `${backend}/api`;
+const backendOrigin = backend.replace(/\/api$/, "");
+export const mediaUrl = (url) =>
+  url?.startsWith("/uploads/") ? `${backendOrigin}${url}` : url;
+
 export async function api(path, options = {}) {
-  const response = await fetch(`/api${path}`, {
-    credentials: "same-origin",
+  const response = await fetch(`${API_BASE_URL}/${path.replace(/^\/+/, "")}`, {
+    credentials: "include",
     ...options,
     headers:
       options.body instanceof FormData

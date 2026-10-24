@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+import { paymentAmounts } from "../../shared/payments.js";
+import { settings, audit } from "./payments.js";
 import { store } from "../repositories/store.js";
 import { getCart, clearCart } from "./cart.js";
 import { assert } from "../utils/errors.js";
@@ -14,6 +17,14 @@ export async function getOrder(id, user) {
   return {
     ...order,
     items: await store.all("SELECT * FROM order_items WHERE order_id=?", id),
+    receipts: await store.all(
+      "SELECT id,original_filename,mime_type,file_size,uploaded_at,verification_status,rejection_reason,reviewed_at,reviewed_by FROM payment_receipts WHERE order_id=? ORDER BY uploaded_at,id",
+      id,
+    ),
+    payment_history: await store.all(
+      "SELECT a.id,a.action,a.details,a.created_at,a.actor_id,u.first_name,u.last_name FROM payment_audit a JOIN users u ON u.id=a.actor_id WHERE a.order_id=? ORDER BY a.created_at,a.id",
+      id,
+    ),
   };
 }
 export async function listOrders(user, admin = false) {
@@ -22,8 +33,24 @@ export async function listOrders(user, admin = false) {
     ...(admin ? [] : [user.id]),
   );
 }
-export async function createOrder(user) {
+export async function createOrder(user, data) {
+  const fingerprint = createHash("sha256")
+    .update(JSON.stringify(data))
+    .digest("hex");
   return await store.transaction(async () => {
+    const existing = await store.one(
+      "SELECT id,checkout_fingerprint FROM orders WHERE user_id=? AND idempotency_key=?",
+      user.id,
+      data.idempotency_key,
+    );
+    if (existing) {
+      assert(
+        existing.checkout_fingerprint === fingerprint,
+        409,
+        "La clave de confirmación ya se usó con otros datos.",
+      );
+      return getOrder(existing.id, user);
+    }
     const cart = await getCart(user.id);
     assert(cart.items.length, 400, "Tu carrito está vacío.");
     assert(
@@ -37,12 +64,40 @@ export async function createOrder(user) {
         409,
         `Revisá la disponibilidad de ${p.name}.`,
       );
+
+    const config = await settings();
+    const amounts = paymentAmounts(
+      cart.total,
+      data.payment_method === "EFECTIVO" ? config.cash_discount_percentage : 0,
+    );
+    assert(
+      data.expected_subtotal === cart.total &&
+        data.expected_total === amounts.total,
+      409,
+      "Los precios o el descuento cambiaron. Revisá los importes antes de confirmar.",
+    );
+    if (data.payment_method === "TRANSFERENCIA")
+      assert(
+        data.bank_alias === config.bank_alias,
+        409,
+        "El alias de transferencia cambió. Revisá los datos de pago.",
+      );
     const id = Number(
       (
         await store.run(
-          "INSERT INTO orders(user_id,total) VALUES(?,?)",
+          "INSERT INTO orders(user_id,total,subtotal,payment_method,payment_status,discount_percentage,discount_amount,payment_alias_snapshot,idempotency_key,checkout_fingerprint) VALUES(?,?,?,?,?,?,?,?,?,?)",
           user.id,
-          cart.total,
+          amounts.total,
+          amounts.subtotal,
+          data.payment_method,
+          data.payment_method === "EFECTIVO"
+            ? "PENDING_PAYMENT"
+            : "PENDING_VERIFICATION",
+          amounts.discount_percentage,
+          amounts.discount_amount,
+          data.payment_method === "TRANSFERENCIA" ? config.bank_alias : null,
+          data.idempotency_key,
+          fingerprint,
         )
       ).lastInsertRowid,
     );
@@ -68,6 +123,23 @@ export async function createOrder(user) {
         `Cambió la disponibilidad de ${p.name}. Revisá tu carrito.`,
       );
     }
+    if (data.payment_method === "TRANSFERENCIA") {
+      const attached = await store.run(
+        "UPDATE payment_receipts SET order_id=? WHERE id=? AND user_id=? AND order_id IS NULL",
+        id,
+        data.receipt_id,
+        user.id,
+      );
+      assert(
+        attached.changes === 1,
+        400,
+        "Adjuntá un comprobante válido de tu cuenta, sin usar en otro pedido.",
+      );
+    }
+    await audit(id, user.id, "ORDER_CREATED", {
+      payment_method: data.payment_method,
+      ...amounts,
+    });
     await clearCart(user.id);
     return await getOrder(id, user);
   });
@@ -97,6 +169,10 @@ export async function changeStatus(id, status, user) {
           item.product_id,
         );
     await store.run("UPDATE orders SET status=? WHERE id=?", status, id);
+    await audit(id, user.id, "ORDER_STATUS_CHANGED", {
+      from: order.status,
+      to: status,
+    });
     return await getOrder(id, user);
   });
 }

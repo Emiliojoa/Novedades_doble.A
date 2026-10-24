@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import {
+  Banknote,
   LayoutDashboard,
   Package,
   Boxes,
@@ -18,6 +19,7 @@ const links = [
   ["stock", "Stock", Boxes],
   ["categorias", "Categorías", Tags],
   ["pedidos", "Pedidos", ClipboardList],
+  ["pagos", "Configuración de pagos", Banknote],
   ["clientes", "Clientes", Users],
   ["usuarios", "Usuarios", UserRoundCog],
   ["solicitudes", "Solicitudes 3D", Box],

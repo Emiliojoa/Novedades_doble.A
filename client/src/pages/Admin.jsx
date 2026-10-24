@@ -1,3 +1,4 @@
+import { PaymentOrders } from "./PaymentAdmin";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -692,43 +693,7 @@ export function AdminStock() {
 }
 
 export function AdminOrders() {
-  const { data, loading, error } = useApi("/admin/orders");
-  const [status, setStatus] = useState("");
-  return (
-    <>
-      <PageHeading
-        title="Pedidos"
-        description="Cada compra, sus productos y el cliente que la realizó."
-      />
-      <label className="admin-search">
-        Filtrar estado
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">Todos</option>
-          {[
-            "PENDIENTE",
-            "CONFIRMADO",
-            "EN_PREPARACION",
-            "LISTO",
-            "ENTREGADO",
-            "CANCELADO",
-          ].map((s) => (
-            <option key={s}>{s}</option>
-          ))}
-        </select>
-      </label>
-      <ErrorBox message={error} />
-      {loading ? (
-        <Loading />
-      ) : (
-        data && (
-          <OrdersTable
-            orders={data.filter((o) => !status || o.status === status)}
-            admin
-          />
-        )
-      )}
-    </>
-  );
+  return <PaymentOrders />;
 }
 export function AdminCustomers() {
   const { data, loading, error } = useApi("/admin/customers");
