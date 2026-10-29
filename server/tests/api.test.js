@@ -1,6 +1,6 @@
 import test, { after, before } from "node:test";
 import assert from "node:assert/strict";
-import { randomBytes } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 process.env.DATABASE_PROVIDER = "sqlite";
 process.env.DATABASE_PATH = ":memory:";
 delete process.env.SUPABASE_URL;
@@ -11,6 +11,16 @@ const { hashPassword } = await import("../services/auth.js");
 let server, base, admin, client, other, product, category, subcategory, order;
 const password = randomBytes(24).toString("hex");
 async function call(path, { cookie, method = "GET", body, headers = {} } = {}) {
+  if (path === "/orders" && method === "POST" && cookie) {
+    const cart = (await call("/cart", { cookie })).data;
+    body = {
+      payment_method: "EFECTIVO",
+      idempotency_key: randomUUID(),
+      expected_subtotal: cart.total,
+      expected_total: Math.round(cart.total * 0.97),
+      ...body,
+    };
+  }
   const response = await fetch(`${base}/api${path}`, {
     method,
     headers: {
@@ -130,6 +140,20 @@ test("Registro estricto, contraseñas hasheadas y sesiones persistentes", async 
   );
 });
 test("CLIENT no puede modificar catálogo ni acceder a administración", async () => {
+  for (const path of [
+    "/admin/payment-settings",
+    "/admin/users",
+    "/admin/unknown",
+  ])
+    assert.equal(
+      (
+        await call(path, {
+          cookie: client,
+          headers: { "x-role": "ADMIN", "x-user-role": "ADMIN" },
+        })
+      ).status,
+      403,
+    );
   for (const [path, method] of [
     ["/products", "POST"],
     ["/categories", "POST"],
@@ -255,11 +279,12 @@ test("Pedido asociado al cliente, precio histórico y vaciado de carrito", async
   const r = await call("/orders", {
     method: "POST",
     cookie: client,
-    body: { total: 1 },
   });
   assert.equal(r.status, 201);
   order = r.data;
-  assert.equal(order.total, 2000000);
+  assert.equal(order.subtotal, 2000000);
+  assert.equal(order.discount_amount, 60000);
+  assert.equal(order.total, 1940000);
   assert.equal(order.email, "ana@example.test");
   assert.equal(order.items[0].unit_price, 1000000);
   assert.equal((await call("/cart", { cookie: client })).data.items.length, 0);

@@ -79,6 +79,18 @@ Ingresar por `/login` y abrir `/admin`. El comando crea el **único ADMIN** si a
 
 El catálogo arranca vacío: no hay productos ficticios en producción. Los gráficos del inicio son ilustraciones decorativas, no productos anunciados con precio.
 
+## Contexto de sesión y acceso administrativo
+
+Se mantiene el diseño existente, sus colores y la tipografía Poppins. La configuración de pagos conserva la vista de `/admin/pagos`; utiliza `GET/PUT /api/admin/payment-settings`, con alias y descuento reales. El checkout sigue consultando `/api/payment-settings` y cada pedido conserva sus condiciones originales.
+
+`AuthProvider` es el contexto único de sesión: obtiene el usuario de `/api/auth/me`, comparte consultas simultáneas y descarta respuestas anteriores al logout o a un nuevo login. Revalida al recuperar el foco de la ventana. Una respuesta 401 de una sesión protegida limpia el contexto y el contador del carrito. Los roles no se leen de localStorage ni se modifican desde los formularios: incluso al editar el perfil actual se consulta nuevamente al servidor.
+
+`Protected` espera la comprobación del servidor antes de mostrar cada ruta protegida. Un visitante va al login y un CLIENT que escribe `/admin`, `/admin/pagos` u otra ruta administrativa vuelve a su perfil sin cargar el contenido del panel. El ADMIN ingresa directamente al panel y puede cerrar sesión desde la cabecera con los estilos de botones existentes.
+
+El control del navegador no reemplaza los permisos: todo el prefijo `/api/admin` pasa por autenticación y comprobación de rol en Express, incluso para rutas nuevas. Las escrituras de catálogo fuera de ese prefijo también conservan su protección. La modificación de pagos comprueba ADMIN tanto en el endpoint como en el servicio. Los clientes reciben 403 aunque falsifiquen encabezados de rol o datos del navegador; las sesiones ausentes o revocadas reciben 401.
+
+Validación de esta mejora: 34 pruebas de backend y 8 escenarios completos con Chrome, incluyendo acceso por URL, rol falso en localStorage, revocación de sesión sin borrar la cookie del navegador, configuración de pagos, compras, usuarios y responsive. Compilación y lint aprobados. Las pruebas usan una base aislada, no Supabase productivo; el presupuesto de peticiones se reinicia entre escenarios únicamente en el servidor de pruebas, sin reducir los límites de producción. No se agregaron dependencias, migraciones ni cambios en CSS o fuentes.
+
 ## Comprobaciones
 
 ```powershell
@@ -110,7 +122,7 @@ npm run build
 npm start
 ```
 
-Express sirve `client/dist` y la API desde el mismo origen. Configurar `NODE_ENV=production`, `APP_ORIGIN=https://tu-dominio`, y HTTPS en el reverse proxy. Las cookies son HttpOnly, SameSite=Lax, Secure en producción y vencen a los siete días. En contenedores usar `API_HOST=0.0.0.0`. Si se utiliza un proxy, configurar `TRUST_PROXY_HOPS` con la cantidad exacta de proxies confiables para que el limitador de solicitudes use la IP correcta.
+Express sirve `client/dist` y la API desde el mismo origen. Configurar `NODE_ENV=production`, `APP_ORIGIN=https://tu-dominio`, y HTTPS en el reverse proxy. Las cookies son HttpOnly, SameSite=None y Secure en producción (Lax en desarrollo) y vencen a los siete días. En contenedores usar `API_HOST=0.0.0.0`. Si se utiliza un proxy, configurar `TRUST_PROXY_HOPS` con la cantidad exacta de proxies confiables para que el limitador de solicitudes use la IP correcta.
 
 Guardar backups de PostgreSQL y Storage, y mantener las credenciales en el gestor de secretos del hosting. La base necesita las migraciones antes de iniciar.
 
@@ -136,3 +148,8 @@ CORS permite credenciales exclusivamente desde el origen configurado. En producc
 la cookie de sesi?n usa `SameSite=None; Secure` para los dominios separados (en local,
 `SameSite=Lax`). Los navegadores que bloquean cookies de terceros pueden impedir la
 sesi?n entre estos dominios; un proxy bajo el mismo origen evita esa restricci?n.
+
+
+## Pagos en efectivo y transferencia
+
+El carrito permite elegir efectivo con descuento configurable (3% inicial) o transferencia con comprobante privado obligatorio. Administración puede revisar pagos y cambiar el alias y descuento; el cliente consulta estados y reenvía comprobantes rechazados. Ver [PAYMENTS.md](PAYMENTS.md) para migraciones, endpoints, archivos, pruebas y configuración de Render/Supabase.

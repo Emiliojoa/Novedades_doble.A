@@ -13,5 +13,15 @@ await store.run(
   "admin@example.test",
   await hashPassword(process.env.E2E_ADMIN_PASSWORD),
 );
-const { app } = await import("../app.js");
-app.listen(3011, "127.0.0.1", () => console.log("Servidor E2E aislado listo."));
+const { app, apiRequestLimiter } = await import("../app.js");
+const { default: express } = await import("express");
+const testServer = express();
+// Exists only in this isolated test process, never in the production app.
+testServer.post("/__test/reset-limits", (req, res) => {
+  apiRequestLimiter.resetKey(req.ip);
+  res.sendStatus(204);
+});
+testServer.use(app);
+testServer.listen(3011, "127.0.0.1", () =>
+  console.log("Servidor E2E aislado listo."),
+);

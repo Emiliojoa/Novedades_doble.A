@@ -34,23 +34,23 @@ app.use("/api", (req, res, next) => {
   res.set("Cache-Control", "no-store");
   next();
 });
-app.use(
-  "/api",
-  rateLimit({
-    windowMs: 60000,
-    limit: 300,
-    standardHeaders: "draft-8",
-    legacyHeaders: false,
-    message: { error: "Demasiadas solicitudes. Intentá en un minuto." },
-  }),
-  sameOrigin,
-  api,
-);
+export const apiRequestLimiter = rateLimit({
+  windowMs: 60000,
+  limit: 300,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Demasiadas solicitudes. Intentá en un minuto." },
+});
+app.use("/api", apiRequestLimiter, sameOrigin, api);
 app.use("/api", (req, res) =>
   res.status(404).json({ error: "Endpoint no encontrado." }),
 );
 app.use(
   "/uploads",
+  (req, res, next) => {
+    res.set("Cross-Origin-Resource-Policy", "cross-origin");
+    next();
+  },
   express.static(uploadsDir, {
     dotfiles: "deny",
     immutable: true,
@@ -75,7 +75,9 @@ app.use((error, req, res, next) => {
       details: error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
     });
   if (error.code === "LIMIT_FILE_SIZE")
-    return res.status(400).json({ error: "La imagen no puede superar 5 MB." });
+    return res.status(400).json({
+      error: "El archivo supera el tamaño máximo permitido para esta carga.",
+    });
   if (error.name === "MulterError")
     return res.status(400).json({ error: "Carga de imagen inválida." });
   const status = error.status || 500;

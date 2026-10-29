@@ -1,3 +1,5 @@
+import * as payments from "../services/payments.js";
+import * as receipts from "../services/receipts.js";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import multer from "multer";
@@ -33,6 +35,8 @@ api.param("id", (req, res, next, id) => {
   next();
 });
 const admin = [authenticate, adminOnly];
+api.use("/admin", ...admin);
+const adminRoute = [adminOnly];
 const quoteUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 8, fieldSize: 20000 },
@@ -94,7 +98,12 @@ api.put(
   commerce.updateItem,
 );
 api.delete("/cart/items/:id", authenticate, commerce.removeItem);
-api.post("/orders", authenticate, commerce.createOrder);
+api.post(
+  "/orders",
+  authenticate,
+  validate(schemas.checkoutSchema),
+  commerce.createOrder,
+);
 api.get("/orders", authenticate, commerce.listOrders);
 api.get("/orders/:id", authenticate, commerce.getOrder);
 api.post(
@@ -124,47 +133,49 @@ api.post(
   commerce.createQuote,
 );
 api.get("/quotes", authenticate, commerce.listQuotes);
-api.get("/admin/stats", ...admin, async (req, res) => res.json(await stats()));
-api.get("/admin/products", ...admin, async (req, res) =>
+api.get("/admin/stats", ...adminRoute, async (req, res) =>
+  res.json(await stats()),
+);
+api.get("/admin/products", ...adminRoute, async (req, res) =>
   res.json(await listProducts(req.query, true)),
 );
-api.get("/admin/stock", ...admin, async (req, res) =>
+api.get("/admin/stock", ...adminRoute, async (req, res) =>
   res.json(await listProducts({}, true)),
 );
-api.get("/admin/orders", ...admin, async (req, res) =>
+api.get("/admin/orders", ...adminRoute, async (req, res) =>
   res.json(await listOrders(req.user, true)),
 );
 api.patch(
   "/admin/orders/:id/status",
-  ...admin,
+  ...adminRoute,
   validate(schemas.statusSchema),
   async (req, res) =>
     res.json(
       await changeStatus(Number(req.params.id), req.data.status, req.user),
     ),
 );
-api.get("/admin/customers", ...admin, async (req, res) =>
+api.get("/admin/customers", ...adminRoute, async (req, res) =>
   res.json(await customers()),
 );
-api.get("/admin/users", ...admin, async (req, res) =>
+api.get("/admin/users", ...adminRoute, async (req, res) =>
   res.json(await users.listUsers()),
 );
 api.post(
   "/admin/users",
-  ...admin,
+  ...adminRoute,
   validate(schemas.registerSchema),
   async (req, res) => res.status(201).json(await users.createUser(req.data)),
 );
 api.put(
   "/admin/users/:id",
-  ...admin,
+  ...adminRoute,
   validate(schemas.adminUserSchema),
   async (req, res) =>
     res.json(await users.updateUser(Number(req.params.id), req.data)),
 );
 api.patch(
   "/admin/users/:id/password",
-  ...admin,
+  ...adminRoute,
   validate(schemas.adminPasswordSchema),
   async (req, res) => {
     await users.changePassword(Number(req.params.id), req.data.password);
@@ -174,16 +185,16 @@ api.patch(
     });
   },
 );
-api.delete("/admin/users/:id", ...admin, async (req, res) => {
+api.delete("/admin/users/:id", ...adminRoute, async (req, res) => {
   await users.deleteUser(Number(req.params.id));
   res.json({ message: "Usuario eliminado." });
 });
-api.get("/admin/quotes", ...admin, async (req, res) =>
+api.get("/admin/quotes", ...adminRoute, async (req, res) =>
   res.json(await listQuotes()),
 );
 api.patch(
   "/admin/quotes/:id/status",
-  ...admin,
+  ...adminRoute,
   validate(schemas.quoteStatusSchema),
   async (req, res) =>
     res.json(await updateQuote(Number(req.params.id), req.data.status)),
@@ -213,3 +224,78 @@ async function saveUploadedImage(b) {
 api.post("/uploads", ...admin, upload.single("image"), async (req, res) => {
   res.status(201).json({ url: await saveUploadedImage(req.file?.buffer) });
 });
+
+// Payment receipts are never exposed through the public uploads directory.
+const receiptUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: receipts.receiptMaxBytes, files: 1, fields: 0 },
+});
+const receiptLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+});
+api.get("/payment-settings", authenticate, async (req, res) =>
+  res.json(await payments.settings()),
+);
+api.get("/admin/payment-settings", ...adminRoute, async (req, res) =>
+  res.json(await payments.settings()),
+);
+api.put(
+  "/admin/payment-settings",
+  ...adminRoute,
+  validate(schemas.paymentSettingsSchema),
+  async (req, res) =>
+    res.json(await payments.updateSettings(req.data, req.user)),
+);
+api.get("/admin/payments", ...adminRoute, async (req, res) =>
+  res.json(
+    await payments.adminPayments(schemas.paymentListSchema.parse(req.query)),
+  ),
+);
+api.post(
+  "/payment-receipts",
+  authenticate,
+  receiptLimit,
+  receiptUpload.single("receipt"),
+  async (req, res) =>
+    res.status(201).json(await receipts.uploadReceipt(req.file, req.user)),
+);
+api.delete("/payment-receipts/:receiptId", authenticate, async (req, res) => {
+  await receipts.removeDraft(req.params.receiptId, req.user);
+  res.json({ ok: true });
+});
+api.get("/payment-receipts/:receiptId", authenticate, async (req, res) => {
+  const receipt = await receipts.readReceipt(req.params.receiptId, req.user);
+  res.set("Cache-Control", "private, no-store");
+  res.set("Cross-Origin-Resource-Policy", "cross-origin");
+  res.set("Content-Security-Policy", "sandbox; default-src 'none'");
+  res.set(
+    "Content-Disposition",
+    `${req.query.download === "1" ? "attachment" : "inline"}; filename="comprobante${receipt.mime_type === "application/pdf" ? ".pdf" : receipt.mime_type === "image/png" ? ".png" : ".jpg"}"`,
+  );
+  res.type(receipt.mime_type).send(receipt.content);
+});
+api.post(
+  "/orders/:id/receipts",
+  authenticate,
+  validate(schemas.receiptLinkSchema),
+  async (req, res) =>
+    res.json(
+      await payments.attachReceipt(
+        Number(req.params.id),
+        req.data.receipt_id,
+        req.user,
+      ),
+    ),
+);
+api.patch(
+  "/admin/orders/:id/payment",
+  ...adminRoute,
+  validate(schemas.paymentReviewSchema),
+  async (req, res) =>
+    res.json(
+      await payments.reviewPayment(Number(req.params.id), req.data, req.user),
+    ),
+);

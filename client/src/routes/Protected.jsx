@@ -1,14 +1,33 @@
+import { useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { ErrorBox, Loading } from "../components/UI";
 export default function Protected({ admin = false }) {
-  const { user, loading, error } = useAuth();
+  const { user, loading, error, refreshSession } = useAuth();
   const location = useLocation();
-  if (loading) return <Loading />;
-  if (error)
+  const [verification, setVerification] = useState(null);
+  const key = location.key + location.pathname + location.search,
+    userId = user?.id;
+  useEffect(() => {
+    if (loading || !userId) return;
+    let current = true;
+    refreshSession()
+      .then(() => {
+        if (current) setVerification({ key, error: "" });
+      })
+      .catch((e) => {
+        if (current)
+          setVerification({ key, error: e.status === 401 ? "" : e.message });
+      });
+    return () => {
+      current = false;
+    };
+  }, [key, userId, loading, refreshSession]);
+  if (loading || (user && verification?.key !== key)) return <Loading />;
+  if (error || verification?.error)
     return (
       <div className="wrap page">
-        <ErrorBox message={error} />
+        <ErrorBox message={error || verification?.error} />
         <button
           className="button secondary"
           onClick={() => window.location.reload()}

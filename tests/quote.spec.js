@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { randomBytes } from "node:crypto";
 import { unlink } from "node:fs/promises";
 

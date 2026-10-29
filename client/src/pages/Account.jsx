@@ -1,3 +1,6 @@
+import { PaymentBadge } from "../components/Payments";
+import OrderPayment from "../components/OrderPayment";
+import { methodLabels } from "../../../shared/payments";
 import { useState } from "react";
 import {
   Link,
@@ -20,6 +23,7 @@ export function OrdersTable({ orders, admin = false }) {
             <th>Pedido</th>
             <th>Fecha</th>
             {admin && <th>Cliente</th>}
+            <th>Pago</th>
             <th>Total</th>
             <th>Estado</th>
             <th />
@@ -36,6 +40,15 @@ export function OrdersTable({ orders, admin = false }) {
                   <small>{o.email}</small>
                 </td>
               )}
+              <td>
+                <strong>{methodLabels[o.payment_method] || "Histórico"}</strong>
+                <small>
+                  {o.discount_percentage
+                    ? `${o.discount_percentage}% de descuento · ${money(o.discount_amount)}`
+                    : "Sin descuento"}
+                </small>
+                <PaymentBadge status={o.payment_status} />
+              </td>
               <td>{money(o.total)}</td>
               <td>
                 <Badge status={o.status} />
@@ -195,7 +208,15 @@ export function OrderDetail({ admin = false }) {
             {params.has("created") && (
               <div className="success">
                 <CheckCircle2 size={20} />
-                ¡Recibimos tu pedido! Ya podés ver sus detalles.
+                {o.payment_status === "APPROVED"
+                  ? "Tu pedido está registrado y el pago fue aprobado."
+                  : o.payment_status === "REJECTED"
+                    ? "Tu pedido está registrado. Revisá el motivo de rechazo del comprobante."
+                    : o.payment_method === "EFECTIVO"
+                      ? `¡Tu pedido fue registrado correctamente! Obtenés un ${o.discount_percentage}% de descuento por pagar en efectivo. El pago se encuentra pendiente de confirmación.`
+                      : o.payment_method === "TRANSFERENCIA"
+                        ? "¡Tu pedido fue registrado correctamente! Recibimos tu comprobante de transferencia y el pago se encuentra pendiente de verificación."
+                        : "¡Recibimos tu pedido! Ya podés ver sus detalles."}
               </div>
             )}
             <PageHeading
@@ -214,7 +235,8 @@ export function OrderDetail({ admin = false }) {
               <p>{o.email}</p>
               {o.phone && <p>{o.phone}</p>}
               <p className="hint">
-                El pago y la entrega se coordinan con el local.
+                La entrega se coordina con el local. El estado del pago figura
+                por separado.
               </p>
             </div>
             <div className="table-scroll">
@@ -242,6 +264,7 @@ export function OrderDetail({ admin = false }) {
             <div className="order-total">
               Total del pedido <strong>{money(o.total)}</strong>
             </div>
+            <OrderPayment order={o} admin={admin} refresh={refresh} />
             {admin && (
               <div className="panel">
                 <h3>Actualizar estado</h3>

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { randomBytes } from "node:crypto";
 
 test("Administración crea, busca, edita, cambia contraseña y elimina usuarios", async ({

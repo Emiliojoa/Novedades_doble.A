@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { randomBytes } from "node:crypto";
 test("Tienda completa: administración, cliente, pedido y responsive", async ({
   page,
@@ -116,9 +116,12 @@ test("Tienda completa: administración, cliente, pedido y responsive", async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  await page.getByRole("radio", { name: /Pago en efectivo/ }).check();
   await page.getByRole("button", { name: "Confirmar pedido" }).click();
   await expect(
-    page.getByText("¡Recibimos tu pedido!", { exact: false }),
+    page.getByText("¡Tu pedido fue registrado correctamente!", {
+      exact: false,
+    }),
   ).toBeVisible();
   await expect(page.getByText("cliente-ui@example.test")).toBeVisible();
   await page.goto("/impresiones-3d");
@@ -171,9 +174,13 @@ test("Tienda completa: administración, cliente, pedido y responsive", async ({
     .getByLabel("Contraseña", { exact: true })
     .fill(process.env.E2E_ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Ingresar", exact: true }).click();
-  await expect(page).toHaveURL(/\/perfil$/);
+  await expect(page).toHaveURL(/\/admin$/);
   await page.goto("/admin/pedidos");
-  await page.getByRole("link", { name: "Ver", exact: true }).click();
+  await page
+    .getByRole("row")
+    .filter({ hasText: "cliente-ui@example.test" })
+    .getByRole("link", { name: "Ver", exact: true })
+    .click();
   await expect(page.getByText("cliente-ui@example.test")).toBeVisible();
   await page.getByRole("button", { name: "Confirmado", exact: true }).click();
   await expect(

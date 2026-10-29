@@ -19,8 +19,18 @@ export default function Auth({ register = false }) {
     setBusy(true);
     try {
       const data = Object.fromEntries(new FormData(e.currentTarget));
-      await authenticate(register ? "register" : "login", data);
-      navigate(next, { replace: true });
+      const currentUser = await authenticate(
+        register ? "register" : "login",
+        data,
+      );
+      navigate(
+        currentUser.role === "ADMIN"
+          ? "/admin"
+          : next.startsWith("/admin")
+            ? "/perfil"
+            : next,
+        { replace: true },
+      );
     } catch (e) {
       setError(e.message);
     } finally {
