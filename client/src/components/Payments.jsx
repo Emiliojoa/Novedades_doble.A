@@ -162,45 +162,48 @@ export function PaymentSelector({
   setReceipt,
   disabled,
   onUploadBusy,
+  stage = "all",
 }) {
   const [copied, setCopied] = useState(false),
     [copyError, setCopyError] = useState("");
   const cash = paymentAmounts(subtotal, config.cash_discount_percentage);
   return (
     <section className="payment-section">
-      <fieldset disabled={disabled}>
-        <legend>Seleccioná tu método de pago</legend>
-        <div className="payment-options">
-          {[
-            ["EFECTIVO", Banknote, "Pago en efectivo", cash.total],
-            ["TRANSFERENCIA", Landmark, "Transferencia bancaria", subtotal],
-          ].map(([value, Icon, title, total]) => (
-            <label
-              key={value}
-              className={`payment-option ${method === value ? "is-selected" : ""}`}
-            >
-              <input
-                type="radio"
-                name="payment-method"
-                value={value}
-                checked={method === value}
-                onChange={() => setMethod(value)}
-              />
-              <Icon size={24} aria-hidden="true" />
-              <span>
-                <strong>{title}</strong>
-                <small>
-                  {value === "EFECTIVO"
-                    ? `${config.cash_discount_percentage}% de descuento · Ahorrás ${money(cash.discount_amount)}`
-                    : "Adjuntá tu comprobante para verificar el pago"}
-                </small>
-              </span>
-              <strong>{money(total)}</strong>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      {method === "TRANSFERENCIA" && (
+      {stage !== "details" && (
+        <fieldset disabled={disabled}>
+          <legend>Seleccioná tu método de pago</legend>
+          <div className="payment-options">
+            {[
+              ["EFECTIVO", Banknote, "Pago en efectivo", cash.total],
+              ["TRANSFERENCIA", Landmark, "Transferencia bancaria", subtotal],
+            ].map(([value, Icon, title, total]) => (
+              <label
+                key={value}
+                className={`payment-option ${method === value ? "is-selected" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="payment-method"
+                  value={value}
+                  checked={method === value}
+                  onChange={() => setMethod(value)}
+                />
+                <Icon size={24} aria-hidden="true" />
+                <span>
+                  <strong>{title}</strong>
+                  <small>
+                    {value === "EFECTIVO"
+                      ? `${config.cash_discount_percentage}% de descuento · Ahorrás ${money(cash.discount_amount)}`
+                      : "Adjuntá tu comprobante para verificar el pago"}
+                  </small>
+                </span>
+                <strong>{money(total)}</strong>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      {method === "TRANSFERENCIA" && stage !== "method" && (
         <>
           <div className="bank-details">
             <h3>Transferencia bancaria</h3>
@@ -230,9 +233,8 @@ export function PaymentSelector({
               Importe exacto: <strong>{money(subtotal)}</strong>
             </p>
             <p>
-              Realizá la transferencia al alias indicado por el importe total de
-              tu compra. Una vez realizada, subí el comprobante de pago para que
-              podamos verificarlo y confirmar tu pedido.
+              Transferí al alias indicado y subí el comprobante para que podamos
+              verificar tu pago.
             </p>
             <ErrorBox message={copyError} />
           </div>
@@ -255,7 +257,9 @@ export function PaymentSummary({ order }) {
         <dt>Método de pago</dt>
         <dd>
           {methodLabels[order.payment_method] ||
-            (order.id ? "Sin registrar (pedido histórico)" : "Seleccioná un método")}
+            (order.id
+              ? "Sin registrar (pedido histórico)"
+              : "Seleccioná un método")}
         </dd>
       </div>
       <div>

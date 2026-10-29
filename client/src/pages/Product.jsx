@@ -11,6 +11,7 @@ export default function Product() {
     { data: p, loading, error } = useApi(`/products/${id}`);
   const { user, refreshCart } = useAuth();
   const navigate = useNavigate();
+  const [selectedImage, setSelectedImage] = useState(null);
   const [quantity, setQuantity] = useState(1),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
@@ -49,7 +50,38 @@ export default function Product() {
       ) : (
         p && (
           <div className="product-detail">
-            <ProductImage product={p} />
+            <div className="product-gallery">
+              <ProductImage
+                key={selectedImage?.url || p.image}
+                product={{
+                  ...p,
+                  image:
+                    selectedImage?.id === p.id ? selectedImage.url : p.image,
+                }}
+              />
+              {p.images?.length > 1 && (
+                <div
+                  className="product-thumbnails"
+                  aria-label="Fotos del producto"
+                >
+                  {p.images.map((image, index) => (
+                    <button
+                      key={image}
+                      className="gallery-thumbnail"
+                      aria-label={`Ver foto ${index + 1} de ${p.name}`}
+                      aria-pressed={
+                        (selectedImage?.id === p.id
+                          ? selectedImage.url
+                          : p.image) === image
+                      }
+                      onClick={() => setSelectedImage({ id: p.id, url: image })}
+                    >
+                      <ProductImage product={{ ...p, image }} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div>
               <span className="eyebrow blue">
                 {p.category_name}

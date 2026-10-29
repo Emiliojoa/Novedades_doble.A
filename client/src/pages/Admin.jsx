@@ -87,6 +87,7 @@ const blankProduct = {
   stock: 0,
   min_stock: 5,
   image: "",
+  images: [],
   category_id: "",
   subcategory_id: "",
   type: "PRODUCTO",
@@ -94,6 +95,7 @@ const blankProduct = {
   featured: false,
 };
 export function AdminProducts() {
+  const [imageUrl, setImageUrl] = useState("");
   const products = useApi("/admin/products"),
     categories = useApi("/categories");
   const [editing, setEditing] = useState(null),
@@ -130,23 +132,45 @@ export function AdminProducts() {
   }
   function edit(p) {
     setError("");
+    setImageUrl("");
     setEditing({
       ...Object.fromEntries(
         Object.keys(blankProduct).map((k) => [k, p[k] ?? blankProduct[k]]),
       ),
+      images: p.images?.length ? p.images : p.image ? [p.image] : [],
       price: p.price / 100,
       id: p.id,
     });
   }
-  async function upload(file) {
-    if (!file) return;
+  async function upload(files) {
+    const selected = Array.from(files || []);
+    if (!selected.length) return;
+    if (editing.images.length + selected.length > 8) {
+      setError("Hasta 8 fotos por producto.");
+      return;
+    }
+    if (
+      selected.some(
+        (f) =>
+          !["image/png", "image/jpeg", "image/webp"].includes(f.type) ||
+          f.size > 5242880,
+      )
+    ) {
+      setError("Usar PNG, JPEG o WebP de hasta 5 MB por foto.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      const form = new FormData();
-      form.append("image", file);
-      const result = await api("/uploads", { method: "POST", body: form });
-      setEditing((p) => ({ ...p, image: result.url }));
+      for (const file of selected) {
+        const form = new FormData();
+        form.append("image", file);
+        const result = await api("/uploads", { method: "POST", body: form });
+        setEditing((p) => {
+          const images = [...p.images, result.url];
+          return { ...p, images, image: images[0] };
+        });
+      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -185,6 +209,7 @@ export function AdminProducts() {
         <button
           className="button primary"
           onClick={() => {
+            setImageUrl("");
             setEditing({ ...blankProduct });
             setError("");
           }}
@@ -308,21 +333,87 @@ export function AdminProducts() {
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 disabled={busy}
-                onChange={(e) => upload(e.target.files[0])}
+                multiple
+                onChange={(e) => {
+                  upload(e.target.files);
+                  e.target.value = "";
+                }}
               />
             </label>
           </div>
+          <p className="hint">Hasta 8 fotos. La primera es la principal.</p>
           <label>
-            URL de imagen HTTPS o imagen subida
+            Agregar foto desde una URL HTTPS
             <input
-              value={editing.image}
-              onChange={(e) => change("image", e.target.value)}
+              type="url"
+              value={imageUrl}
               maxLength={2048}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://..."
+              disabled={busy}
             />
           </label>
-          {editing.image && (
-            <ProductImage product={editing} className="editor-preview" />
-          )}
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy || !imageUrl.trim()}
+            onClick={() => {
+              const url = imageUrl.trim();
+              if (!/^https:\/\/[^\s]+$/.test(url)) {
+                setError("Usá una URL HTTPS válida.");
+                return;
+              }
+              if (editing.images.length >= 8) {
+                setError("Hasta 8 fotos por producto.");
+                return;
+              }
+              const images = [...new Set([...editing.images, url])];
+              setEditing((p) => ({ ...p, images, image: images[0] }));
+              setImageUrl("");
+              setError("");
+            }}
+          >
+            Agregar foto por URL
+          </button>
+          <div className="product-photo-editor" aria-label="Fotos del producto">
+            {editing.images.map((image, index) => (
+              <div key={image}>
+                <ProductImage product={{ ...editing, image }} />
+                <button
+                  type="button"
+                  className="text-link"
+                  disabled={busy || index === 0}
+                  onClick={() => {
+                    const images = [
+                      image,
+                      ...editing.images.filter((url) => url !== image),
+                    ];
+                    setEditing((p) => ({ ...p, images, image }));
+                  }}
+                >
+                  {index === 0 ? "Foto principal" : "Hacer principal"}
+                </button>
+                <button
+                  type="button"
+                  className="text-link danger"
+                  disabled={busy}
+                  aria-label={`Quitar foto ${index + 1}`}
+                  onClick={() => {
+                    const images = editing.images.filter(
+                      (url) => url !== image,
+                    );
+                    setEditing((p) => ({
+                      ...p,
+                      images,
+                      image: images[0] || "",
+                    }));
+                  }}
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+          </div>
           <label>
             Descripción
             <textarea

@@ -60,18 +60,46 @@ test("Tienda completa: administración, cliente, pedido y responsive", async ({
   await page
     .getByLabel("Descripción", { exact: true })
     .fill("Producto temporal utilizado únicamente en las pruebas de interfaz.");
+  const photo = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aGJ8AAAAASUVORK5CYII=",
+    "base64",
+  );
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: "frente.png", mimeType: "image/png", buffer: photo },
+    { name: "dorso.png", mimeType: "image/png", buffer: photo },
+  ]);
+  await expect(page.locator(".product-photo-editor > div")).toHaveCount(2);
+  await page.getByRole("button", { name: "Hacer principal" }).click();
+  const cover = await page
+    .locator(".product-photo-editor img")
+    .first()
+    .getAttribute("src");
   await page.getByLabel("Destacado en inicio").check();
   await page.getByRole("button", { name: "Guardar producto" }).click();
   await expect(
     page.getByRole("button", { name: "Editar Auriculares de prueba" }),
   ).toBeVisible();
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Editar Auriculares de prueba" })
+    .click();
+  await expect(page.locator(".product-photo-editor > div")).toHaveCount(2);
+  await expect(
+    page.locator(".product-photo-editor img").first(),
+  ).toHaveAttribute("src", cover);
   await page.goto("/perfil");
   await page.getByRole("button", { name: "Cerrar sesión" }).click();
   await expect(page).toHaveURL("http://127.0.0.1:3011/");
   await page.goto("/productos");
   await page
     .getByRole("link", { name: "Auriculares de prueba", exact: true })
+    .first()
     .click();
+  await expect(page.locator(".gallery-thumbnail")).toHaveCount(2);
+  await page.getByRole("button", { name: /Ver foto 2/ }).click();
+  await expect(
+    page.getByRole("button", { name: /Ver foto 2/ }),
+  ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Agregar al carrito" }).click();
   await expect(page).toHaveURL(/login/);
   await expect(
@@ -116,7 +144,9 @@ test("Tienda completa: administración, cliente, pedido y responsive", async ({
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  await page.getByRole("button", { name: "Continuar al pago" }).click();
   await page.getByRole("radio", { name: /Pago en efectivo/ }).check();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
   await page.getByRole("button", { name: "Confirmar pedido" }).click();
   await expect(
     page.getByText("¡Tu pedido fue registrado correctamente!", {

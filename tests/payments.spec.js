@@ -45,7 +45,9 @@ test("Confirmación recuperable: respuesta perdida y recarga no duplican pedido 
     data: { product_id: product.id, quantity: 1 },
   });
   await page.goto("/carrito");
+  await page.getByRole("button", { name: "Continuar al pago" }).click();
   await page.getByRole("radio", { name: /Pago en efectivo/ }).check();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
   await page.route(
     "**/api/orders",
     async (route) => {
@@ -132,19 +134,21 @@ test("Pagos: efectivo, transferencia, rechazo, reenvío y aprobación con UI res
     data: { product_id: product.id, quantity: 1 },
   });
   await page.goto("/carrito");
+  await page.getByRole("button", { name: "Continuar al pago" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continuar", exact: true })).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Continuar al pago" })).toBeFocused();
+  await page.getByRole("button", { name: "Continuar al pago" }).click();
   const confirm = page.getByRole("button", {
     name: "Confirmar pedido",
     exact: true,
   });
-  await expect(confirm).toBeDisabled();
   await page.getByRole("radio", { name: /Pago en efectivo/ }).check();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
   await expect(page.locator(".payment-totals")).toContainText("48.500");
   await expect(page.locator(".payment-totals")).toContainText("1.500");
-  await page.getByRole("radio", { name: /Transferencia bancaria/ }).check();
-  await expect(confirm).toBeDisabled();
-  await expect(page.locator(".payment-totals")).toContainText("50.000");
-  await expect(page.locator(".bank-alias")).toContainText("emilio.joa.mp");
-  await page.getByRole("radio", { name: /Pago en efectivo/ }).check();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(
@@ -154,6 +158,7 @@ test("Pagos: efectivo, transferencia, rechazo, reenvío y aprobación con UI res
   await page.screenshot({
     path: "test-results/payments-cash-mobile.png",
     fullPage: true,
+    animations: "disabled",
   });
   await confirm.click();
   await expect(page).toHaveURL(/pedidos\/\d+/);
@@ -188,7 +193,11 @@ test("Pagos: efectivo, transferencia, rechazo, reenvío y aprobación con UI res
     data: { product_id: product.id, quantity: 1 },
   });
   await page.goto("/carrito");
+  await page.getByRole("button", { name: "Continuar al pago" }).click();
   await page.getByRole("radio", { name: /Transferencia bancaria/ }).check();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+  await confirm.click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toBeVisible();
   const png = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aGJ8AAAAASUVORK5CYII=",
     "base64",
@@ -204,9 +213,22 @@ test("Pagos: efectivo, transferencia, rechazo, reenvío y aprobación con UI res
   await expect(
     page.getByAltText("Vista previa del comprobante seleccionado"),
   ).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("alert")).toHaveCount(0);
+  await page.getByRole("button", { name: "Volver", exact: true }).click();
+  await page.getByRole("button", { name: "Continuar", exact: true }).click();
+  await expect(page.getByText("comprobante.png", { exact: true })).toBeVisible();
+  for (const width of [320, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const footer = page.getByRole("dialog").locator(".checkout-footer");
+    await expect(footer).toBeInViewport();
+    expect(await page.getByRole("dialog").evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  }
+  await page.screenshot({ path: "test-results/payments-transfer-desktop.png", animations: "disabled" });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: "test-results/payments-transfer-mobile.png",
     fullPage: true,
+    animations: "disabled",
   });
   await confirm.click();
   await expect(page).toHaveURL(/pedidos\/\d+/);
@@ -285,6 +307,7 @@ test("Pagos: efectivo, transferencia, rechazo, reenvío y aprobación con UI res
   await adminPage.screenshot({
     path: "test-results/payments-admin-tablet.png",
     fullPage: true,
+    animations: "disabled",
   });
   await adminPage.goto("/admin/pagos");
   await adminPage.getByLabel("Alias bancario").fill("alias.prueba.mp");
