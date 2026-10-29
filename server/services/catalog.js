@@ -63,13 +63,25 @@ async function checkCategory(data) {
 export async function saveProduct(data, id) {
   return store.transaction(async () => {
     await checkCategory(data);
+    const previous = id ? await getProduct(id, true) : null;
+    const images = [
+      ...new Set(
+        data.images ??
+          (previous && data.image === previous.image
+            ? previous.images
+            : data.image
+              ? [data.image]
+              : []),
+      ),
+    ];
     const values = [
       data.name,
       data.description,
       data.price,
       data.stock,
       data.min_stock,
-      data.image,
+      images[0] || "",
+      JSON.stringify(images),
       data.category_id,
       data.subcategory_id,
       data.type,
@@ -79,7 +91,7 @@ export async function saveProduct(data, id) {
     if (id) {
       await getProduct(id, true);
       await store.run(
-        "UPDATE products SET name=?,description=?,price=?,stock=?,min_stock=?,image=?,category_id=?,subcategory_id=?,type=?,active=?,featured=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        "UPDATE products SET name=?,description=?,price=?,stock=?,min_stock=?,image=?,images=?,category_id=?,subcategory_id=?,type=?,active=?,featured=?,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         ...values,
         id,
       );
@@ -87,7 +99,7 @@ export async function saveProduct(data, id) {
       id = Number(
         (
           await store.run(
-            "INSERT INTO products(name,description,price,stock,min_stock,image,category_id,subcategory_id,type,active,featured) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO products(name,description,price,stock,min_stock,image,images,category_id,subcategory_id,type,active,featured) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
             ...values,
           )
         ).lastInsertRowid,

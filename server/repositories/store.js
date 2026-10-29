@@ -10,7 +10,16 @@ export const store = {
 export const productsQuery = `SELECT p.*, c.name category_name, s.name subcategory_name FROM products p JOIN categories c ON c.id=p.category_id LEFT JOIN categories s ON s.id=p.subcategory_id`;
 export function productDTO(p) {
   return (
-    p && { ...p, active: Boolean(p.active), featured: Boolean(p.featured) }
+    p && {
+      ...p,
+      images: JSON.parse(p.images || "[]").length
+        ? JSON.parse(p.images)
+        : p.image
+          ? [p.image]
+          : [],
+      active: Boolean(p.active),
+      featured: Boolean(p.featured),
+    }
   );
 }
 export function publicUser(u) {

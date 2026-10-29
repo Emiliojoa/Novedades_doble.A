@@ -153,3 +153,8 @@ sesi?n entre estos dominios; un proxy bajo el mismo origen evita esa restricci?n
 ## Pagos en efectivo y transferencia
 
 El carrito permite elegir efectivo con descuento configurable (3% inicial) o transferencia con comprobante privado obligatorio. Administración puede revisar pagos y cambiar el alias y descuento; el cliente consulta estados y reenvía comprobantes rechazados. Ver [PAYMENTS.md](PAYMENTS.md) para migraciones, endpoints, archivos, pruebas y configuración de Render/Supabase.
+## Pago y fotos de productos
+
+El carrito abre un modal en dos pasos. El total y las acciones permanecen visibles; los errores conservan el comprobante y la confirmacion recuperable evita pedidos duplicados.
+
+Para habilitar la galeria en PostgreSQL/Supabase, ejecutar `npm run db:migrate` antes de desplegar el backend actualizado. La migracion `004_product_images.sql` agrega una columna sin modificar las fotos existentes. En SQLite la columna se agrega al iniciar. Cada producto admite hasta 8 fotos; la primera se usa como portada. Desde el administrador se pueden seleccionar varios archivos, agregar URLs HTTPS, cambiar la portada y quitar fotos de la galeria.

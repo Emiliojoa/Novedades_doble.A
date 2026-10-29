@@ -100,3 +100,12 @@ CREATE TABLE IF NOT EXISTS payment_audit (
 );
 `);
 });
+
+if (
+  !db
+    .prepare("PRAGMA table_info(products)")
+    .all()
+    .some((c) => c.name === "images")
+) {
+  db.exec("ALTER TABLE products ADD COLUMN images TEXT NOT NULL DEFAULT '[]'");
+}

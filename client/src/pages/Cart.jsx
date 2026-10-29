@@ -1,8 +1,14 @@
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
 import { PaymentSelector, PaymentSummary } from "../components/Payments";
 import { paymentAmounts } from "../../../shared/payments";
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Trash2, Minus, Plus, ArrowRight } from "lucide-react";
+import { Trash2, Minus, Plus, ArrowRight, X, ArrowLeft } from "lucide-react";
 import { useApi } from "../hooks/useApi";
 import { useAuth } from "../hooks/useAuth";
 import { api } from "../services/api";
@@ -29,6 +35,8 @@ export default function Cart() {
       return null;
     }
   });
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [step, setStep] = useState(1);
   const requestLock = useRef(false);
   const amounts = paymentAmounts(
     data?.total || 0,
@@ -60,7 +68,9 @@ export default function Cart() {
     if (requestLock.current || uploadBusy) return;
     if (!attempt && (!method || (method === "TRANSFERENCIA" && !receipt))) {
       setMessage(
-        "Seleccioná un método de pago y adjuntá el comprobante si elegís transferencia.",
+        !method
+          ? "Seleccioná un método de pago."
+          : "Adjuntá el comprobante para confirmar la transferencia.",
       );
       return;
     }
@@ -93,6 +103,7 @@ export default function Cart() {
           ? e.message
           : "No pudimos confirmar la respuesta. Reintentá con el botón de recuperación para evitar duplicar el pedido.",
       );
+      if (!e.status || e.status >= 500) setPaymentOpen(false);
       if (e.status && e.status < 500) {
         clearAttempt();
         refresh();
@@ -204,47 +215,147 @@ export default function Cart() {
               <span>Productos</span>
               <span>{data.items.reduce((s, p) => s + p.quantity, 0)}</span>
             </div>
-            {config.loading ? (
-              <Loading />
-            ) : (
-              config.data && (
+            <div className="summary-total">
+              <span>Subtotal</span>
+              <strong>{money(data.total)}</strong>
+            </div>
+            {!!config.data?.cash_discount_percentage && (
+              <p>
+                Pagando en efectivo: {config.data.cash_discount_percentage}% de
+                descuento.
+              </p>
+            )}
+            <button
+              className="button primary full"
+              disabled={busy || locked || invalid || !config.data || loading}
+              onClick={() => {
+                setStep(1);
+                setMessage("");
+                setPaymentOpen(true);
+              }}
+            >
+              Continuar al pago <ArrowRight size={18} />
+            </button>
+            {invalid && (
+              <p className="danger" role="alert">
+                Hay productos sin disponibilidad. Revisalos antes de continuar.
+              </p>
+            )}
+            <small>
+              El precio y la disponibilidad se verifican al confirmar.
+            </small>
+          </aside>
+          <Dialog
+            open={paymentOpen}
+            onClose={() => {
+              if (!busy && !uploadBusy) setPaymentOpen(false);
+            }}
+            maxWidth="md"
+            fullWidth
+            scroll="paper"
+            className="checkout-modal"
+            aria-labelledby="checkout-title"
+          >
+            <DialogTitle component="div" className="checkout-heading">
+              <div>
+                <small>Paso {step} de 2</small>
+                <h2 id="checkout-title">
+                  {step === 1
+                    ? "Elegir medio de pago"
+                    : method === "TRANSFERENCIA"
+                      ? "Transferir y adjuntar comprobante"
+                      : "Confirmar tu pedido"}
+                </h2>
+              </div>
+              <button
+                className="icon-button"
+                aria-label="Cerrar pago"
+                disabled={busy || uploadBusy}
+                onClick={() => setPaymentOpen(false)}
+              >
+                <X size={22} />
+              </button>
+            </DialogTitle>
+            <DialogContent dividers className="checkout-content">
+              <ErrorBox message={message || config.error} />
+              {config.data && (
                 <PaymentSelector
                   config={config.data}
                   subtotal={data.total}
                   method={method}
                   setMethod={setMethod}
                   receipt={receipt}
-                  setReceipt={setReceipt}
+                  setReceipt={(value) => {
+                    setReceipt(value);
+                    setMessage("");
+                  }}
                   disabled={busy || locked || uploadBusy}
                   onUploadBusy={setUploadBusy}
+                  stage={step === 1 ? "method" : "details"}
                 />
-              )
-            )}
-            <PaymentSummary order={{ ...amounts, payment_method: method }} />
-            <p>
-              La entrega se coordina con el local. El pago se confirma cuando
-              administración verifica su recepción.
-            </p>
-            <button
-              className="button primary full"
-              disabled={
-                busy ||
-                locked ||
-                uploadBusy ||
-                invalid ||
-                !config.data ||
-                !method ||
-                (method === "TRANSFERENCIA" && !receipt)
-              }
-              onClick={checkout}
-            >
-              {busy ? "Procesando…" : "Confirmar pedido"}
-              <ArrowRight size={18} />
-            </button>
-            <small>
-              El precio y la disponibilidad se verifican al confirmar.
-            </small>
-          </aside>
+              )}
+              {step === 2 && (
+                <>
+                  {method === "EFECTIVO" && (
+                    <p className="notice">
+                      Pagás en efectivo al coordinar con el local. No hace falta
+                      un comprobante.
+                    </p>
+                  )}
+                  {method === "EFECTIVO" && (
+                    <PaymentSummary
+                      order={{ ...amounts, payment_method: method }}
+                    />
+                  )}
+                  <p className="hint">
+                    La entrega se coordina con el local. Las transferencias se
+                    verifican antes de confirmar el pago.
+                  </p>
+                </>
+              )}
+            </DialogContent>
+            <DialogActions className="checkout-footer">
+              <div>
+                <small>Total a pagar</small>
+                <strong>{money(amounts.total)}</strong>
+              </div>
+              <div className="button-row">
+                {step === 2 && (
+                  <button
+                    className="button secondary"
+                    disabled={busy || uploadBusy || locked}
+                    onClick={() => {
+                      setStep(1);
+                      setMessage("");
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    Volver
+                  </button>
+                )}
+                <button
+                  className="button primary"
+                  disabled={
+                    busy ||
+                    uploadBusy ||
+                    locked ||
+                    invalid ||
+                    !method ||
+                    !config.data ||
+                    loading
+                  }
+                  onClick={step === 1 ? () => setStep(2) : checkout}
+                >
+                  {busy
+                    ? "Procesando..."
+                    : step === 1
+                      ? "Continuar"
+                      : "Confirmar pedido"}
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            </DialogActions>
+          </Dialog>
         </div>
       ) : (
         !error && (

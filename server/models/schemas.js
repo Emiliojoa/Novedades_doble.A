@@ -25,6 +25,17 @@ export const adminPasswordSchema = z
 export const categorySchema = z
   .object({ name, parent_id: id.nullable().default(null) })
   .strict();
+const productImage = z
+  .string()
+  .max(2048)
+  .refine(
+    (v) =>
+      !v ||
+      /^\/uploads\/[a-f0-9-]+\.(png|jpg|webp)$/.test(v) ||
+      /^https:\/\/[^\s]+$/.test(v),
+    "Usá una imagen subida o una URL HTTPS.",
+  );
+
 export const productSchema = z
   .object({
     name,
@@ -32,16 +43,11 @@ export const productSchema = z
     price: z.number().int().min(0).max(10000000000),
     stock: z.number().int().min(0).max(1000000),
     min_stock: z.number().int().min(0).max(1000000),
-    image: z
-      .string()
-      .max(2048)
-      .refine(
-        (v) =>
-          !v ||
-          /^\/uploads\/[a-f0-9-]+\.(png|jpg|webp)$/.test(v) ||
-          /^https:\/\/[^\s]+$/.test(v),
-        "Usá una imagen subida o una URL HTTPS.",
-      ),
+    image: productImage,
+    images: z
+      .array(productImage.refine(Boolean, "La imagen no puede estar vacía."))
+      .max(8)
+      .optional(),
     category_id: id,
     subcategory_id: id.nullable().default(null),
     type: z.enum(["PRODUCTO", "IMPRESION_3D", "PERSONALIZADO"]),
