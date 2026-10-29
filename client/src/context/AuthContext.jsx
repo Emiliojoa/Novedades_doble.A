@@ -1,4 +1,10 @@
-import { startTransition, useEffect, useState } from "react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "./auth";
 import { api } from "../services/api";
@@ -8,40 +14,101 @@ export function AuthProvider({ children }) {
     [loading, setLoading] = useState(true),
     [cartCount, setCartCount] = useState(0),
     [error, setError] = useState("");
-  async function refreshCart() {
+  const generation = useRef(0),
+    pending = useRef(null);
+  const clearSession = useCallback(() => {
+    generation.current++;
+    pending.current = null;
+    setUser(null);
+    setCartCount(0);
+    setError("");
+  }, []);
+  const refreshCart = useCallback(async () => {
+    const version = generation.current;
     try {
       const cart = await api("/cart");
-      setCartCount(cart.items.reduce((s, p) => s + p.quantity, 0));
+      if (version === generation.current)
+        setCartCount(cart.items.reduce((s, p) => s + p.quantity, 0));
     } catch {
-      setCartCount(0);
+      if (version === generation.current) setCartCount(0);
     }
-  }
-  useEffect(() => {
-    api("/auth/me")
-      .then((currentUser) => {
-        setUser(currentUser);
-        return refreshCart();
+  }, []);
+  const refreshSession = useCallback(() => {
+    if (pending.current) return pending.current;
+    const version = generation.current;
+    const request = api("/auth/me")
+      .then((current) => {
+        if (version === generation.current) {
+          setUser(current);
+          setError("");
+        }
+        return current;
       })
       .catch((e) => {
-        if (e.status !== 401) setError(e.message);
+        if (version === generation.current) {
+          if (e.status === 401) {
+            setUser(null);
+            setCartCount(0);
+            setError("");
+          } else setError(e.message);
+        }
+        throw e;
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (pending.current === request) pending.current = null;
+      });
+    pending.current = request;
+    return request;
   }, []);
+  useEffect(() => {
+    let active = true;
+    refreshSession()
+      .then(() => {
+        if (active) return refreshCart();
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [refreshSession, refreshCart]);
+  useEffect(() => {
+    const recheck = () => {
+      if (document.visibilityState === "visible")
+        refreshSession().catch(() => {});
+    };
+    window.addEventListener("auth:session-expired", clearSession);
+    window.addEventListener("focus", recheck);
+    document.addEventListener("visibilitychange", recheck);
+    return () => {
+      window.removeEventListener("auth:session-expired", clearSession);
+      window.removeEventListener("focus", recheck);
+      document.removeEventListener("visibilitychange", recheck);
+    };
+  }, [refreshSession, clearSession]);
   async function authenticate(mode, data) {
-    const u = await api(`/auth/${mode}`, { method: "POST", body: data });
-    setUser(u);
+    const current = await api("/auth/" + mode, { method: "POST", body: data });
+    generation.current++;
+    pending.current = null;
+    setUser(current);
     setError("");
     await refreshCart();
-    return u;
+    return current;
   }
   async function logout() {
     await api("/auth/logout", { method: "POST" });
+    const destination = user?.role === "ADMIN" ? "/login" : "/";
     startTransition(() => {
-      navigate("/", { replace: true });
-      setUser(null);
-      setCartCount(0);
+      clearSession();
+      navigate(destination, { replace: true });
     });
   }
+  const updateCurrentUser = useCallback(
+    () => refreshSession().catch(() => {}),
+    [refreshSession],
+  );
   return (
     <AuthContext.Provider
       value={{
@@ -50,9 +117,10 @@ export function AuthProvider({ children }) {
         error,
         cartCount,
         refreshCart,
+        refreshSession,
         authenticate,
         logout,
-        updateCurrentUser: setUser,
+        updateCurrentUser,
       }}
     >
       {children}

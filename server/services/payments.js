@@ -21,6 +21,7 @@ export async function audit(orderId, actorId, action, details = {}) {
   );
 }
 export async function updateSettings(data, user) {
+  assert(user?.role === "ADMIN", 403, "Acceso exclusivo de administración.");
   return store.transaction(async () => {
     await store.run(
       "UPDATE payment_settings SET bank_alias=?,cash_discount_percentage=?,updated_at=CURRENT_TIMESTAMP WHERE id=1",

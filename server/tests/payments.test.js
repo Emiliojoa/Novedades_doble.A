@@ -346,6 +346,15 @@ test("Rechazo exige motivo; nuevo comprobante conserva el historial y evita revi
   assert.equal(refreshed.payment_history.length, 4);
 });
 test("Configuración persistente y protegida; compras históricas conservan condiciones", async () => {
+  assert.equal(
+    (await call("/admin/payment-settings", { cookie: null })).status,
+    401,
+  );
+  assert.equal((await call("/admin/payment-settings")).status, 403);
+  assert.equal(
+    (await call("/admin/payment-settings", { cookie: admin })).status,
+    200,
+  );
   const body = { bank_alias: "nuevo.alias.mp", cash_discount_percentage: 5 };
   assert.equal(
     (await call("/admin/payment-settings", { method: "PUT", body })).status,

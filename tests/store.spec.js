@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { randomBytes } from "node:crypto";
 test("Tienda completa: administración, cliente, pedido y responsive", async ({
   page,
@@ -174,7 +174,7 @@ test("Tienda completa: administración, cliente, pedido y responsive", async ({
     .getByLabel("Contraseña", { exact: true })
     .fill(process.env.E2E_ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Ingresar", exact: true }).click();
-  await expect(page).toHaveURL(/\/perfil$/);
+  await expect(page).toHaveURL(/\/admin$/);
   await page.goto("/admin/pedidos");
   await page
     .getByRole("row")

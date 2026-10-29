@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { randomBytes } from "node:crypto";
 
 test("Confirmación recuperable: respuesta perdida y recarga no duplican pedido ni stock", async ({

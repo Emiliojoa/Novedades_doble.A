@@ -35,6 +35,8 @@ export async function api(path, options = {}) {
         : data.error || "No se pudo completar la solicitud.",
     );
     error.status = response.status;
+    if (response.status === 401 && !/^\/auth\/(login|register)$/.test(path))
+      window.dispatchEvent(new Event("auth:session-expired"));
     throw error;
   }
   return data;

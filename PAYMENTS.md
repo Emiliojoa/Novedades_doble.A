@@ -6,6 +6,13 @@ El cliente elige efectivo o transferencia en el carrito. El valor inicial de efe
 es 3%; el alias inicial de transferencia es `emilio.joa.mp`. Ambos se editan desde
 **Administración → Configuración de pagos** (`/admin/pagos`).
 
+La vista conserva el diseño, los colores y la tipografía actuales. Carga y guarda
+mediante `GET/PUT /api/admin/payment-settings`, exclusivos de ADMIN. El acceso
+por URL se valida contra la sesión del servidor antes de mostrar el formulario;
+los endpoints rechazan a clientes aunque modifiquen el rol en el navegador.
+`/api/payment-settings` sigue disponible para el checkout autenticado, sin dar
+permiso para editar la configuración.
+
 Los importes se guardan en centavos enteros. El descuento se calcula con `BigInt`
 y redondeo al centavo más cercano, con mitades hacia arriba. La base conserva el
 subtotal, porcentaje, descuento, total y alias de cada compra. El servidor valida

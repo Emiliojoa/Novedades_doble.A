@@ -34,18 +34,14 @@ app.use("/api", (req, res, next) => {
   res.set("Cache-Control", "no-store");
   next();
 });
-app.use(
-  "/api",
-  rateLimit({
-    windowMs: 60000,
-    limit: 300,
-    standardHeaders: "draft-8",
-    legacyHeaders: false,
-    message: { error: "Demasiadas solicitudes. Intentá en un minuto." },
-  }),
-  sameOrigin,
-  api,
-);
+export const apiRequestLimiter = rateLimit({
+  windowMs: 60000,
+  limit: 300,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Demasiadas solicitudes. Intentá en un minuto." },
+});
+app.use("/api", apiRequestLimiter, sameOrigin, api);
 app.use("/api", (req, res) =>
   res.status(404).json({ error: "Endpoint no encontrado." }),
 );

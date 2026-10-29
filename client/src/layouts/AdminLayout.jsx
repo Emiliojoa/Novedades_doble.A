@@ -1,4 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useState } from "react";
+import { ErrorBox } from "../components/UI";
 import {
   Banknote,
   LayoutDashboard,
@@ -10,6 +12,7 @@ import {
   UserRoundCog,
   Box,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
 import { Logo } from "./StoreLayout";
 import { useAuth } from "../hooks/useAuth";
@@ -25,7 +28,9 @@ const links = [
   ["solicitudes", "Solicitudes 3D", Box],
 ];
 export default function AdminLayout() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
@@ -47,11 +52,33 @@ export default function AdminLayout() {
       <div className="admin-main">
         <header className="admin-header">
           <span>Panel de administración</span>
-          <strong>
-            {user.first_name} <span className="mini-tag">ADMIN</span>
-          </strong>
+          <div className="header-actions">
+            <strong>
+              {user.first_name} <span className="mini-tag">ADMIN</span>
+            </strong>
+            <button
+              className="button secondary"
+              disabled={busy}
+              onClick={async () => {
+                if (busy) return;
+                setBusy(true);
+                setError("");
+                try {
+                  await logout();
+                } catch (e) {
+                  setError(e.message);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <LogOut size={17} />
+              {busy ? "Cerrando…" : "Cerrar sesión"}
+            </button>
+          </div>
         </header>
         <main className="admin-content">
+          <ErrorBox message={error} />
           <Outlet />
         </main>
       </div>

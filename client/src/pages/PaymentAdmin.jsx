@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApi } from "../hooks/useApi";
 import { api } from "../services/api";
@@ -153,6 +153,7 @@ export function PaymentOrders() {
   );
 }
 function SettingsForm({ config }) {
+  const lock = useRef(false);
   const [alias, setAlias] = useState(config.bank_alias),
     [discount, setDiscount] = useState(config.cash_discount_percentage),
     [busy, setBusy] = useState(false),
@@ -163,22 +164,26 @@ function SettingsForm({ config }) {
       className="panel payment-settings"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (busy) return;
+        if (lock.current) return;
+        lock.current = true;
         setBusy(true);
         setError("");
         setSaved(false);
         try {
-          await api("/admin/payment-settings", {
+          const updated = await api("/admin/payment-settings", {
             method: "PUT",
             body: {
               bank_alias: alias,
               cash_discount_percentage: Number(discount),
             },
           });
+          setAlias(updated.bank_alias);
+          setDiscount(updated.cash_discount_percentage);
           setSaved(true);
         } catch (e) {
           setError(e.message);
         } finally {
+          lock.current = false;
           setBusy(false);
         }
       }}
@@ -187,6 +192,7 @@ function SettingsForm({ config }) {
       <label>
         Alias bancario
         <input
+          disabled={busy}
           required
           minLength={6}
           maxLength={100}
@@ -208,6 +214,7 @@ function SettingsForm({ config }) {
           max={100}
           step={1}
           value={discount}
+          disabled={busy}
           onChange={(e) => {
             setDiscount(e.target.value);
             setSaved(false);
@@ -231,7 +238,7 @@ function SettingsForm({ config }) {
   );
 }
 export default function PaymentSettings() {
-  const { data, loading, error } = useApi("/payment-settings");
+  const { data, loading, error } = useApi("/admin/payment-settings");
   return (
     <>
       <PageHeading

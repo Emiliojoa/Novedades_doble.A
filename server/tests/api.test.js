@@ -140,6 +140,20 @@ test("Registro estricto, contraseñas hasheadas y sesiones persistentes", async 
   );
 });
 test("CLIENT no puede modificar catálogo ni acceder a administración", async () => {
+  for (const path of [
+    "/admin/payment-settings",
+    "/admin/users",
+    "/admin/unknown",
+  ])
+    assert.equal(
+      (
+        await call(path, {
+          cookie: client,
+          headers: { "x-role": "ADMIN", "x-user-role": "ADMIN" },
+        })
+      ).status,
+      403,
+    );
   for (const [path, method] of [
     ["/products", "POST"],
     ["/categories", "POST"],
